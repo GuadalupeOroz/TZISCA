@@ -1,6 +1,8 @@
-*Documento corregido y cerrado — Versión cerrada, 08/09/2026. Fuente oficial para el Diagrama Entidad–Relación, el modelo físico en SQL Server, el Diseño de API REST y la Matriz de Trazabilidad.*
+*Documento corregido y cerrado — Versión cerrada, 08/09/2026; actualizada el 09/09/2026 con las decisiones aprobadas. Fuente oficial para el Diagrama Entidad–Relación, el modelo físico en SQL Server, el Diseño de API REST y la Matriz de Trazabilidad.*
 
 > ***Nota de versión — documento cerrado. Esta es la versión corregida y cerrada del Diccionario de Datos y Modelo de Datos Depurado de TZISCA, actualizada el 08/09/2026 conforme a las instrucciones de corrección y cierre vigentes. El trabajo se realizó sobre la versión anterior del documento: no se reconstruyó desde cero, no se eliminaron entidades válidas y no se inventaron valores operativos o económicos pendientes de aprobación. Los cambios principales respecto a la versión previa son: (1) actualización de la referencia CU-01 a CU-38 → CU-01 a CU-43, y de RN-01 a RN-72 → RN-01 a RN-90; (2) incorporación de Reservacion.estado_reservacion (EN_PROCESO, CONFIRMADA, CANCELADA, EXPIRADA) y del ciclo formal de dos niveles con ReservacionTratamiento.estado; (3) cambio del default de ReservacionTratamiento.estado a PENDIENTE y normalización de su catálogo a PENDIENTE, CONFIRMADO, EN_ATENCION, COMPLETADO y CANCELADO, incluyendo la transición PENDIENTE→CANCELADO; (4) eliminación de la duración fija de 10 minutos en BloqueoTemporal.fecha_expiracion, trasladada a un parámetro operativo configurable pendiente de aprobación; (5) confirmación de los catálogos técnicos únicos de Pago.estado_pago y Devolucion.estado_devolucion, sin agregar RECHAZADO como estado adicional; (6) incorporación de Devolucion.tipo_devolucion (PARCIAL/TOTAL), separado del estado técnico de la devolución; (7) TransaccionPago se mantiene como entidad opcional; (8) DP-EC-01 documenta la fórmula del importe como decisión pendiente, sin inventarla; (9) nueva sección de configuración operativa pendiente de modelado físico (horario, días laborales, excepciones, intervalos de agenda, anticipación mínima y máxima, duración del bloqueo); (10) corrección de las cardinalidades Reservacion→Pago, ReservacionTratamiento→Devolucion y Pago→TransaccionPago a 1:0..N; (11) eliminación de la decisión pendiente sobre el uso de PENDIENTE, ya resuelta. El documento queda cerrado como fuente oficial para el Diagrama Entidad–Relación, el modelo físico en SQL Server, el Diseño de API REST y la Matriz de Trazabilidad.***
+
+> ***Nota de actualización — 09/09/2026. El documento *Decisiones Aprobadas TZISCA* formalizó DP-OP-01 a DP-OP-13, DP-EC-01 a DP-EC-02 y DP-TEC-01 a DP-TEC-03, hasta entonces pendientes en esta versión cerrada. Esta actualización no reabre ni reconstruye el documento: incorpora los valores aprobados en los campos y secciones que antes decían "PENDIENTE DE APROBACIÓN" (ParametroOperativo, sección 7), actualiza las notas de consistencia sobre precio_base/importe (DP-EC-01, RN-104) y sobre pago aprobado con disponibilidad perdida (DP-EC-02, RN-105), incorpora las tres entidades operativas de agenda (ParametroOperativo, DiaLaborable, ExcepcionOperativa) al conteo confirmado de entidades y ajusta la descripción de TransaccionPago conforme a DP-TEC-02 (Stripe mediante PaymentService). No se elimina ninguna entidad, campo ni relación previamente definida.***
 
 # 1. Propósito del documento
 
@@ -53,7 +55,7 @@ Por decisión del proyecto, los campos de cadena o contenido alfanumérico se do
 | Sin tabla Reporte | Los reportes básicos se obtienen consultando y agregando datos de reservaciones, tratamientos, cabinas y cancelaciones. |
 | Sin Bitácora general en esta versión | La trazabilidad funcional queda cubierta por tablas específicas de historial, bloqueos, asignaciones y cancelaciones; una auditoría técnica global podrá añadirse si el proyecto la requiere posteriormente. |
 | Pagos separados de la reservación | La información financiera no se almacena directamente dentro de Reservacion. Cada reservación puede relacionarse con uno o más registros de Pago para conservar intentos, estados y trazabilidad. Las devoluciones se registran mediante Devolucion, permitiendo movimientos totales o parciales sin eliminar el historial original del pago. Pago permanece separado de Reservacion y Devolucion permanece separada de Pago; esta versión no modifica esa decisión. |
-| Importes históricos independientes del catálogo | El precio vigente de un tratamiento puede modificarse posteriormente. ReservacionTratamiento conserva el precio aplicado y el importe de la instancia al momento de reservar para no alterar información histórica. La fórmula exacta de cálculo del importe (por persona o por tratamiento completo) queda pendiente de aprobación conforme a DP-EC-01 (sección 11). |
+| Importes históricos independientes del catálogo | El precio vigente de un tratamiento puede modificarse posteriormente. ReservacionTratamiento conserva el precio aplicado y el importe de la instancia al momento de reservar para no alterar información histórica. La fórmula de cálculo del importe está aprobada conforme a DP-EC-01 (RN-104, sección 11): precio_base es precio por persona; importe = precio_unitario × numero_personas. |
 
 # 4. Ciclo de vida de estados: Reservacion y ReservacionTratamiento
 
@@ -77,7 +79,7 @@ Este documento resuelve el uso ambiguo del estado Pendiente señalado en la vers
 | EN_PROCESO | EXPIRADA | El bloqueo temporal vigente expira sin que el pago o la confirmación se completen (RN-34, RN-81). |
 | CONFIRMADA | CANCELADA | Cancelación posterior a la confirmación, sujeta a las reglas de Cancelacion y Devolucion. |
 
-**Nota de consistencia (DP-EC-02):** el caso en que el pago ya fue aprobado pero el bloqueo temporal expiró y la revalidación de disponibilidad resultó negativa está identificado formalmente como DP-EC-02 en Reglas de Negocio Horario y Políticas TZISCA (sección 17.2) y permanece pendiente de aprobación: la Reservacion no debe confirmarse mientras no exista disponibilidad, pero el tratamiento económico exacto (conciliación, devolución u otro mecanismo) no se define en este diccionario. El catálogo de ReservacionTratamiento.estado tampoco define un valor EXPIRADO equivalente (ver 4.2); el tratamiento de los registros PENDIENTE de una reservación EXPIRADA queda sujeto a la resolución de DP-EC-02.
+**Nota de consistencia (DP-EC-02):** el caso en que el pago ya fue aprobado pero el bloqueo temporal expiró y la revalidación de disponibilidad resultó negativa está identificado formalmente como DP-EC-02 en Reglas de Negocio Horario y Políticas TZISCA (sección 18.2) y quedó aprobado mediante *Decisiones Aprobadas TZISCA* (RN-105): la Reservacion no se confirma y permanece EN_PROCESO mientras no exista disponibilidad; el Cliente podrá seleccionar otra cabina u horario disponible, conservar los tratamientos válidos y solicitar devolución parcial del tratamiento afectado, o cancelar la operación y recibir devolución total, sin que TZISCA presuma ninguna de estas acciones automáticamente. El catálogo de ReservacionTratamiento.estado tampoco define un valor EXPIRADO equivalente (ver 4.2); el tratamiento de los registros PENDIENTE de una reservación EXPIRADA sigue el mecanismo aprobado en DP-EC-02.
 
 ## 4.2 Estados de ReservacionTratamiento.estado
 
@@ -127,9 +129,12 @@ Este documento resuelve el uso ambiguo del estado Pendiente señalado en la vers
 | 20 | Cancelacion | Conserva la información propia de cancelaciones individuales o de reservación completa. |
 | 21 | Pago | Registra las operaciones económicas relacionadas con una reservación, incluyendo importe, método, estado y referencia. |
 | 22 | Devolucion | Registra devoluciones totales o parciales relacionadas con pagos y cancelaciones, clasificadas mediante tipo_devolucion. |
-| 23 | TransaccionPago (opcional) | Conserva historial técnico de intentos y respuestas de una pasarela externa cuando exista integración. |
+| 23 | ParametroOperativo | Configuración operativa vigente de agenda: horario general, intervalo de agenda, anticipación y duración del bloqueo temporal, con valores aprobados (sección 7). |
+| 24 | DiaLaborable | Días de la semana en que el spa opera y su horario particular cuando difiere del horario general, con valores aprobados (sección 7). |
+| 25 | ExcepcionOperativa | Fechas no laborables o con horario especial que prevalecen sobre el calendario regular (sección 7). |
+| 26 | TransaccionPago (opcional) | Conserva historial técnico de intentos y respuestas de la pasarela externa (Stripe, DP-TEC-02) cuando se implemente la integración. |
 
-Total confirmado: 22 entidades obligatorias más 1 entidad opcional (TransaccionPago) = **23 entidades**. La sección 7 propone, adicionalmente, entidades estructurales para el modelo operativo de agenda (ParametroOperativo, DiaLaborable, ExcepcionOperativa); no se incorporan todavía a este total porque sus valores están pendientes de aprobación del negocio (ver secciones 7 y 11, y el recálculo detallado en la sección 13).
+Total confirmado: 25 entidades obligatorias más 1 entidad opcional (TransaccionPago) = **26 entidades**. Las entidades ParametroOperativo, DiaLaborable y ExcepcionOperativa (sección 7) se incorporan a este total porque sus valores fueron aprobados mediante *Decisiones Aprobadas TZISCA* (DP-OP-01 a DP-OP-08, RN-91 a RN-98); antes de esa aprobación permanecían fuera del conteo por depender de valores de negocio pendientes (ver el recálculo detallado en la sección 13).
 
 # 6. Diccionario de datos
 
@@ -242,7 +247,7 @@ Almacena los servicios o tratamientos ofrecidos por el spa.
 | requiere_proveedor | BIT | — | No | No | 1 | Indica si el servicio requiere proveedor asignado. |
 | activo | BIT | — | No | No | 1 | Solo tratamientos activos se ofrecen para nuevas reservaciones. |
 | fecha_registro | DATETIME2 | — | No | No | Fecha/hora actual | Fecha de alta en el catálogo. |
-| precio_base | DECIMAL(10,2) | — | No | No | — | Precio base vigente del tratamiento para nuevas reservaciones. Debe ser mayor o igual que cero. La fórmula exacta de aplicación (por persona o por tratamiento completo) está pendiente de aprobación conforme a DP-EC-01 (sección 11); este diccionario no la anticipa. |
+| precio_base | DECIMAL(10,2) | — | No | No | — | Precio base vigente del tratamiento para nuevas reservaciones. Debe ser mayor o igual que cero. Conforme a DP-EC-01 (RN-104, sección 11), se interpreta como precio por persona. |
 | moneda | TEXT | — | No | No | MXN | Moneda en la que se expresa el precio base. Para la primera versión se utilizará MXN. |
 
 **Relaciones:** Tratamiento 1:N TratamientoCabina; Tratamiento 1:N ProveedorTratamiento; Tratamiento 1:N CarritoTratamiento; Tratamiento 1:N ReservacionTratamiento.
@@ -342,12 +347,12 @@ Protege provisionalmente un intervalo de cabina durante el proceso de carrito.
 | fecha_hora_inicio | DATETIME2 | — | No | No | — | Inicio del intervalo. |
 | fecha_hora_fin | DATETIME2 | — | No | No | — | Fin del intervalo. |
 | fecha_creacion | DATETIME2 | — | No | No | Fecha/hora actual | Creación del bloqueo. |
-| fecha_expiracion | DATETIME2 | — | No | No | Calculado: fecha_creacion + ParametroOperativo.duracion_bloqueo_minutos vigente | Vencimiento del bloqueo. No se fija un valor de minutos en el diccionario: se calcula a partir del parámetro operativo de duración de bloqueo vigente (sección 7, DP-OP-08), cuyo valor numérico está pendiente de aprobación. |
+| fecha_expiracion | DATETIME2 | — | No | No | Calculado: fecha_creacion + ParametroOperativo.duracion_bloqueo_minutos vigente | Vencimiento del bloqueo. Se calcula a partir del parámetro operativo de duración de bloqueo vigente (sección 7, DP-OP-08), cuyo valor aprobado es 15 minutos (RN-98). El campo se calcula mediante el parámetro configurado y no mediante una constante fija en el código. |
 | estado | TEXT | — | No | No | ACTIVO | Estado: ACTIVO, CONFIRMADO, EXPIRADO o LIBERADO. |
 
 **Relaciones:** CarritoTratamiento 1:N BloqueoTemporal; Cabina 1:N BloqueoTemporal.
 
-**Notas de diseño:** Solo un bloqueo vigente debe proteger una misma selección; bloqueos anteriores pueden conservarse como registros expirados o liberados. Esta versión elimina la referencia fija a "Creación + 10 minutos" que traía el documento anterior: RN-31 y la nota de consistencia de la sección 17 de Reglas de Negocio Horario y Políticas TZISCA establecen explícitamente que cualquier valor fijo en minutos debe considerarse no aprobado hasta su validación formal (ver sección 7, ParametroOperativo.duracion_bloqueo_minutos).
+**Notas de diseño:** Solo un bloqueo vigente debe proteger una misma selección; bloqueos anteriores pueden conservarse como registros expirados o liberados. Esta versión elimina la referencia fija a "Creación + 10 minutos" que traía el documento anterior: RN-31 y RN-98 establecen que la duración del bloqueo temporal es un parámetro operativo configurable cuyo valor aprobado es 15 minutos (DP-OP-08, ver sección 7, ParametroOperativo.duracion_bloqueo_minutos).
 
 ## 6.13. Reservacion
 
@@ -386,7 +391,7 @@ Tabla transaccional central: representa cada tratamiento independiente contenido
 | fecha_confirmacion | DATETIME2 | — | Sí | No | NULL | Momento de confirmación. |
 | observaciones | TEXT | — | Sí | No | NULL | Notas del servicio reservado. |
 | precio_unitario | DECIMAL(10,2) | — | No | No | — | Precio aplicado al tratamiento al momento de generar la reservación. Se conserva como valor histórico. |
-| importe | DECIMAL(10,2) | — | No | No | — | Importe correspondiente a esta instancia del tratamiento reservado y base para el cálculo económico. La fórmula exacta (por persona o por tratamiento completo) está pendiente conforme a DP-EC-01 (sección 11). |
+| importe | DECIMAL(10,2) | — | No | No | — | Importe correspondiente a esta instancia del tratamiento reservado. Conforme a DP-EC-01 (RN-104, sección 11): importe = precio_unitario × numero_personas. |
 
 **Relaciones: Reservacion 1:N ReservacionTratamiento; Tratamiento 1:N ReservacionTratamiento; Cabina 1:N ReservacionTratamiento; ReservacionTratamiento 1:N AsignacionProveedor; ReservacionTratamiento 1:N HistorialEstadoTratamiento; ReservacionTratamiento 1:N Cancelacion; ReservacionTratamiento 1:0..N Devolucion.**
 
@@ -569,33 +574,33 @@ Registra el historial técnico de las operaciones realizadas contra un proveedor
 
 **Relaciones: Pago 1:0..N TransaccionPago (únicamente si la entidad opcional se implementa).**
 
-**Notas de diseño:** No se almacenarán números completos de tarjetas, CVV, contraseñas bancarias ni otra información sensible. TransaccionPago conserva únicamente referencias, estados y respuestas técnicas necesarias para trazabilidad. Se mantiene como entidad opcional en esta versión: solo se incorpora al esquema físico si el proyecto integra una pasarela externa.
+**Notas de diseño:** No se almacenarán números completos de tarjetas, CVV, contraseñas bancarias ni otra información sensible. TransaccionPago conserva únicamente referencias, estados y respuestas técnicas necesarias para trazabilidad. Conforme a DP-TEC-02 (RN-107), Stripe es la pasarela inicial aprobada e interactúa con TZISCA a través de PaymentService; TransaccionPago es el soporte técnico para registrar esas interacciones externas. Se mantiene como entidad opcional en el esquema físico: se incorpora cuando se implemente la integración con Stripe.
 
-# 7. Modelo operativo pendiente (parámetros de agenda)
+# 7. Modelo operativo aprobado (parámetros de agenda)
 
-Reglas de Negocio Horario y Políticas TZISCA (sección 17, DP-OP-01 a DP-OP-08) deja pendientes de aprobación los parámetros operativos de agenda del spa. Este documento no inventa esos valores. Se proponen a continuación las estructuras necesarias para SQL Server de modo que, una vez aprobados los valores, puedan incorporarse directamente al esquema físico sin requerir un nuevo rediseño. **Todos los valores marcados como PENDIENTE DE APROBACIÓN quedan fuera de esta versión del diccionario** y no deben asumirse por defecto ni codificarse como constantes (ver sección 17.4 de Reglas de Negocio Horario y Políticas TZISCA).
+Reglas de Negocio Horario y Políticas TZISCA (sección 18, DP-OP-01 a DP-OP-08) dejaba pendientes de aprobación los parámetros operativos de agenda del spa. El documento *Decisiones Aprobadas TZISCA* formalizó esos valores (RN-91 a RN-98). Este documento incorpora a continuación los valores aprobados en las estructuras propuestas para SQL Server, sin requerir un nuevo rediseño del esquema.
 
-Estas tres entidades son una **propuesta estructural**: permiten construir el esquema físico correspondiente, pero no se incorporan todavía al conteo confirmado de 23 entidades (sección 5) porque sus valores operativos dependen de aprobación del negocio. No tienen llaves foráneas obligatorias hacia las entidades transaccionales; alimentan la validación de disponibilidad (BloqueoTemporal, ReservacionTratamiento) mediante lógica de servicio (AvailabilityService), no mediante integridad referencial física.
+Estas tres entidades se incorporan al conteo confirmado de 26 entidades (sección 5), dado que sus valores operativos ya cuentan con aprobación del negocio. No tienen llaves foráneas obligatorias hacia las entidades transaccionales; alimentan la validación de disponibilidad (BloqueoTemporal, ReservacionTratamiento) mediante lógica de servicio (AvailabilityService), no mediante integridad referencial física.
 
-## 7.1. ParametroOperativo (propuesta — valores pendientes de aprobación)
+## 7.1. ParametroOperativo (valores aprobados)
 
 Parámetros generales vigentes de operación del spa (horario general, intervalo de agenda, anticipación y duración de bloqueo).
 
 | **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
 |----|----|----|----|----|----|----|
 | id_parametro_operativo | INT | PK | No | Sí | IDENTITY | Identificador de la configuración. |
-| hora_apertura_general | TIME | — | No | No | PENDIENTE DE APROBACIÓN | Hora oficial de apertura (DP-OP-01). Valor no definido en este documento. |
-| hora_cierre_general | TIME | — | No | No | PENDIENTE DE APROBACIÓN | Hora límite de operación (DP-OP-02), incluyendo si un tratamiento debe finalizar antes o exactamente al cierre. |
-| intervalo_agenda_minutos | INT | — | No | No | PENDIENTE DE APROBACIÓN | Granularidad con la que se generan los horarios disponibles para iniciar un tratamiento (DP-OP-05). |
-| anticipacion_minima_minutos | INT | — | No | No | PENDIENTE DE APROBACIÓN | Tiempo mínimo previo al inicio del servicio para poder reservarlo (DP-OP-06). |
-| anticipacion_maxima_dias | INT | — | No | No | PENDIENTE DE APROBACIÓN | Fecha futura máxima hasta la que un cliente puede reservar (DP-OP-07). |
-| duracion_bloqueo_minutos | INT | — | No | No | PENDIENTE DE APROBACIÓN | Vigencia exacta del bloqueo temporal (DP-OP-08). Sustituye el valor fijo de 10 minutos eliminado de BloqueoTemporal en esta versión; alimenta BloqueoTemporal.fecha_expiracion (sección 6.12). |
+| hora_apertura_general | TIME | — | No | No | 09:00 | Hora oficial de apertura (DP-OP-01, RN-91). |
+| hora_cierre_general | TIME | — | No | No | 20:00 | Hora límite de operación (DP-OP-02, RN-92). Todo tratamiento debe finalizar a más tardar a esta hora. |
+| intervalo_agenda_minutos | INT | — | No | No | 30 | Granularidad con la que se generan los horarios disponibles para iniciar un tratamiento (DP-OP-05, RN-95). |
+| anticipacion_minima_minutos | INT | — | No | No | 120 | Tiempo mínimo previo al inicio del servicio para poder reservarlo: 2 horas (DP-OP-06, RN-96). |
+| anticipacion_maxima_dias | INT | — | No | No | 60 | Fecha futura máxima hasta la que un cliente puede reservar (DP-OP-07, RN-97). |
+| duracion_bloqueo_minutos | INT | — | No | No | 15 | Vigencia exacta del bloqueo temporal (DP-OP-08, RN-98). Sustituye el valor fijo de 10 minutos eliminado de BloqueoTemporal en la versión anterior; alimenta BloqueoTemporal.fecha_expiracion (sección 6.12). |
 | fecha_vigencia_desde | DATETIME2 | — | No | No | Fecha/hora actual | Inicio de vigencia de esta configuración. |
 | activo | BIT | — | No | No | 1 | Indica si es la configuración vigente. Solo debe existir una fila activo = 1 a la vez. |
 
-## 7.2. DiaLaborable (propuesta — valores pendientes de aprobación)
+## 7.2. DiaLaborable (valores aprobados)
 
-Días de la semana en que el spa opera y su horario particular cuando difiere del horario general (DP-OP-03).
+Días de la semana en que el spa opera y su horario particular cuando difiere del horario general (DP-OP-03, RN-93).
 
 | **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
 |----|----|----|----|----|----|----|
@@ -603,20 +608,22 @@ Días de la semana en que el spa opera y su horario particular cuando difiere de
 | dia_semana | INT | — | No | Sí | — | Día de la semana (1 = lunes … 7 = domingo). |
 | hora_apertura | TIME | — | Sí | No | NULL | Hora de apertura específica de ese día; si es NULL aplica ParametroOperativo.hora_apertura_general. |
 | hora_cierre | TIME | — | Sí | No | NULL | Hora de cierre específica de ese día; si es NULL aplica ParametroOperativo.hora_cierre_general. |
-| activo | BIT | — | No | No | PENDIENTE DE APROBACIÓN | Indica si el spa opera ese día de la semana (DP-OP-03). Qué días quedan activos no se define en este documento. |
+| activo | BIT | — | No | No | Según DP-OP-03 | Indica si el spa opera ese día de la semana. Valor aprobado: activo = 1 (verdadero) para los días 1 a 6 (lunes a sábado); activo = 0 (falso) para el día 7 (domingo), no laboral (RN-93). |
 
-## 7.3. ExcepcionOperativa (propuesta — valores pendientes de aprobación)
+**Notas de diseño:** La tabla debe poblarse con siete filas, una por día de la semana, conforme al valor aprobado de activo indicado arriba. Los festivos, cierres extraordinarios y horarios especiales no se registran aquí: se gestionan mediante ExcepcionOperativa (sección 7.3, DP-OP-04) y prevalecen sobre este calendario regular.
 
-Fechas específicas no laborables o con horario especial, como excepción al calendario regular (DP-OP-04).
+## 7.3. ExcepcionOperativa (soporte aprobado)
+
+Fechas específicas no laborables o con horario especial, como excepción al calendario regular (DP-OP-04, RN-94).
 
 | **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
 |----|----|----|----|----|----|----|
 | id_excepcion | INT | PK | No | Sí | IDENTITY | Identificador de la excepción. |
 | fecha | DATE | — | No | Sí | — | Fecha específica de la excepción. |
-| tipo_excepcion | TEXT | — | No | No | — | Valores: NO_LABORABLE o HORARIO_ESPECIAL. |
+| tipo_excepcion | TEXT | — | No | No | — | Valores: NO_LABORABLE o HORARIO_ESPECIAL. Este catálogo de dos valores queda aprobado y es suficiente para representar festivos, cierres extraordinarios y horarios especiales (DP-OP-04). |
 | hora_apertura_especial | TIME | — | Sí | No | NULL | Solo aplica si tipo_excepcion = HORARIO_ESPECIAL. |
 | hora_cierre_especial | TIME | — | Sí | No | NULL | Solo aplica si tipo_excepcion = HORARIO_ESPECIAL. |
-| motivo | TEXT | — | Sí | No | NULL | Motivo de la excepción (feriado, cierre general, mantenimiento, etc.). Mecanismo y catálogo de causas pendientes de aprobación (DP-OP-04). |
+| motivo | TEXT | — | Sí | No | NULL | Motivo de la excepción (feriado, cierre general, mantenimiento, etc.). El catálogo de motivos queda abierto como texto libre; DP-OP-04 aprueba el mecanismo de excepción operativa, no un catálogo cerrado de causas. |
 | fecha_registro | DATETIME2 | — | No | No | Fecha/hora actual | Momento de registro de la excepción. |
 
 # 8. Relaciones y cardinalidades previstas
@@ -661,7 +668,7 @@ Fechas específicas no laborables o con horario especial, como excepción al cal
 
 - No deben existir traslapes de uso de una misma cabina entre tratamientos confirmados, bloqueos temporales vigentes y bloqueos operativos.
 
-- **Los bloqueos temporales tienen una duración determinada por el parámetro operativo vigente (ParametroOperativo.duracion_bloqueo_minutos, sección 7.1; valor pendiente de aprobación conforme a DP-OP-08)** y deben liberarse al expirar, cambiar la selección o eliminar el tratamiento del carrito. Esta versión elimina la referencia fija a 10 minutos que traía el documento anterior.
+- **Los bloqueos temporales tienen una duración determinada por el parámetro operativo vigente (ParametroOperativo.duracion_bloqueo_minutos, sección 7.1; valor aprobado de 15 minutos conforme a DP-OP-08 / RN-98)** y deben liberarse al expirar, cambiar la selección o eliminar el tratamiento del carrito. Esta versión elimina la referencia fija a 10 minutos que traía el documento anterior; el valor de 15 minutos debe implementarse como configuración y no como constante en el código.
 
 - Un proveedor solo puede asignarse si está autorizado para realizar el tratamiento y no tiene otra atención o indisponibilidad que se traslape.
 
@@ -719,7 +726,7 @@ Fechas específicas no laborables o con horario especial, como excepción al cal
 
 - Si se utiliza una pasarela externa, las referencias y respuestas técnicas podrán conservarse mediante TransaccionPago.
 
-- Los parámetros operativos de agenda (ParametroOperativo, DiaLaborable, ExcepcionOperativa, sección 7) no deberán poblarse con valores supuestos; AvailabilityService no deberá calcular disponibilidad hasta que existan valores aprobados y configurados explícitamente (Reglas de Negocio Horario y Políticas TZISCA, sección 17.4).
+- Los parámetros operativos de agenda (ParametroOperativo, DiaLaborable, ExcepcionOperativa, sección 7) deberán poblarse con los valores aprobados en *Decisiones Aprobadas TZISCA* (RN-91 a RN-98) como configuración explícita, y no como constantes dispersas en el código; AvailabilityService deberá calcular disponibilidad a partir de esa configuración (Reglas de Negocio Horario y Políticas TZISCA, sección 18.4).
 
 # 10. Decisiones de depuración y normalización
 
@@ -761,11 +768,11 @@ Las devoluciones se modelan mediante una entidad independiente para conservar la
 
 ## 10.10 Precios históricos
 
-El precio actual pertenece al catálogo Tratamiento, mientras que el precio efectivamente aplicado se conserva en ReservacionTratamiento. Esta separación evita que una modificación futura en los precios del catálogo altere la información histórica de reservaciones previamente realizadas. La fórmula exacta con la que se calcula el importe (por persona o por tratamiento completo) permanece como decisión pendiente DP-EC-01 (sección 11); este diccionario no la anticipa.
+El precio actual pertenece al catálogo Tratamiento, mientras que el precio efectivamente aplicado se conserva en ReservacionTratamiento. Esta separación evita que una modificación futura en los precios del catálogo altere la información histórica de reservaciones previamente realizadas. La fórmula con la que se calcula el importe está aprobada conforme a DP-EC-01 (RN-104): precio_base es precio por persona e importe = precio_unitario × numero_personas.
 
 ## 10.11 Transacciones externas
 
-TransaccionPago se incorporará únicamente cuando TZISCA utilice una pasarela externa que requiera conservar diferentes intentos, referencias o respuestas técnicas. Pago representa el estado financiero dentro de TZISCA y TransaccionPago representa la interacción técnica con el proveedor externo. Se mantiene como entidad opcional en esta versión, sin cambios.
+TransaccionPago deja de describirse como aplicable "solo si algún día se decide una pasarela": DP-TEC-02 (RN-107) aprobó a Stripe como pasarela inicial de pago, integrada mediante PaymentService para no acoplar la lógica de negocio al proveedor externo. Pago representa el estado financiero dentro de TZISCA y TransaccionPago representa el soporte técnico para registrar las interacciones con el proveedor externo (intentos, referencias y respuestas técnicas). Se conserva como entidad opcional en el esquema físico hasta que se implemente la integración; esta actualización documental no implementa Stripe ni agrega claves, secretos o configuraciones reales.
 
 ## 10.12 Resolución del uso del estado Pendiente
 
@@ -773,19 +780,19 @@ La versión anterior de este diccionario dejaba como decisión pendiente "el mom
 
 ## 10.13 Duración del bloqueo temporal
 
-La versión anterior fijaba la duración del bloqueo temporal en "Creación + 10 minutos", tanto en BloqueoTemporal.fecha_expiracion como en las reglas estructurales. Esta versión elimina toda referencia fija en minutos y traslada la duración a un parámetro operativo configurable (ParametroOperativo.duracion_bloqueo_minutos, sección 7.1), consistente con RN-31 y con la nota de consistencia de la sección 17 de Reglas de Negocio Horario y Políticas TZISCA, que establece que cualquier valor fijo en minutos debe considerarse no aprobado hasta su validación formal (DP-OP-08).
+La versión anterior fijaba la duración del bloqueo temporal en "Creación + 10 minutos", tanto en BloqueoTemporal.fecha_expiracion como en las reglas estructurales. Esta versión traslada la duración a un parámetro operativo configurable (ParametroOperativo.duracion_bloqueo_minutos, sección 7.1), consistente con RN-31, cuyo valor quedó formalmente aprobado en 15 minutos (DP-OP-08, RN-98). El valor debe implementarse mediante configuración y no como constante fija en el código.
 
-# 11. Decisiones pendientes antes del modelo físico
+# 11. Decisiones aprobadas antes del modelo físico
 
-Se elimina de esta lista el pendiente sobre el momento de uso del estado Pendiente en ReservacionTratamiento, dado que su ciclo completo queda resuelto en la sección 4 de este documento (ver también 10.12). Quedan vigentes las siguientes decisiones, tomadas directamente del catálogo de decisiones pendientes de Reglas de Negocio Horario y Políticas TZISCA (documento canónico) para no duplicar identificadores:
+Se elimina de esta lista el pendiente sobre el momento de uso del estado Pendiente en ReservacionTratamiento, dado que su ciclo completo queda resuelto en la sección 4 de este documento (ver también 10.12). Las siguientes decisiones, antes pendientes conforme al catálogo de Reglas de Negocio Horario y Políticas TZISCA (documento canónico), quedaron formalmente aprobadas mediante *Decisiones Aprobadas TZISCA* y ya pueden utilizarse para el modelo físico:
 
 | **Código** | **Decisión** | **Estado** | **Impacto en este diccionario** |
 |----|----|----|----|
-| **DP-EC-01** | Fórmula del importe de tratamiento. No se determina todavía si Tratamiento.precio_base corresponde al tratamiento completo o es por persona, si importe = precio_unitario × numero_personas, ni si existen cargos adicionales. | Pendiente de aprobación | Afecta Tratamiento.precio_base, ReservacionTratamiento.precio_unitario/importe y la validación de Pago.monto (secciones 6.6, 6.14, 6.21). |
-| DP-EC-02 | Tratamiento económico cuando el pago fue aprobado, el bloqueo temporal expiró y la revalidación confirma pérdida de disponibilidad. No se determina si corresponde conciliación, devolución, cancelación u otro mecanismo aprobado. | Pendiente de aprobación | Afecta la transición Reservacion.estado_reservacion → EXPIRADA cuando ya existe un Pago aprobado, y el tratamiento de los ReservacionTratamiento en PENDIENTE asociados (sección 4.1). |
-| DP-OP-01 a DP-OP-08 | Hora de apertura, hora de cierre, días laborales, días no laborales/excepciones, duración de intervalos de agenda, anticipación mínima, anticipación máxima y duración del bloqueo temporal. | Pendiente de aprobación | Estructuras propuestas en la sección 7 (ParametroOperativo, DiaLaborable, ExcepcionOperativa); valores no definidos en este diccionario. |
+| **DP-EC-01** | Fórmula del importe de tratamiento. Tratamiento.precio_base es precio por persona; importe = precio_unitario × numero_personas; sin cargos adicionales en el MVP. | Aprobada (RN-104) | Afecta Tratamiento.precio_base, ReservacionTratamiento.precio_unitario/importe y la validación de Pago.monto (secciones 6.6, 6.14, 6.21). |
+| DP-EC-02 | Tratamiento económico cuando el pago fue aprobado, el bloqueo temporal expiró y la revalidación confirma pérdida de disponibilidad. La Reservacion no se confirma y permanece EN_PROCESO; el Cliente elige entre otra cabina/horario, devolución parcial del tratamiento afectado o cancelación con devolución total. | Aprobada (RN-105) | Afecta la transición Reservacion.estado_reservacion → EXPIRADA cuando ya existe un Pago aprobado, y el tratamiento de los ReservacionTratamiento en PENDIENTE asociados (sección 4.1). |
+| DP-OP-01 a DP-OP-08 | Hora de apertura (09:00), hora de cierre (20:00), días laborales (lunes a sábado), días no laborales/excepciones (domingo, más excepciones operativas), duración de intervalos de agenda (30 min), anticipación mínima (2 h), anticipación máxima (60 días) y duración del bloqueo temporal (15 min). | Aprobada (RN-91 a RN-98) | Valores incorporados a las estructuras de la sección 7 (ParametroOperativo, DiaLaborable, ExcepcionOperativa). |
 
-DP-OP-09 a DP-OP-13 (tolerancia y políticas de cancelación/devolución) y DP-TEC-01 a DP-TEC-03 (autenticación, pasarela de pago, algoritmo de recomendación) permanecen igualmente pendientes en Reglas de Negocio Horario y Políticas TZISCA, pero no tienen impacto directo en la estructura del diccionario de datos y no se repiten aquí.
+DP-OP-09 a DP-OP-13 (tolerancia y políticas de cancelación/devolución, RN-99 a RN-103) y DP-TEC-01 a DP-TEC-03 (autenticación, pasarela de pago, algoritmo de recomendación, RN-106 a RN-108) quedaron igualmente aprobadas en Reglas de Negocio Horario y Políticas TZISCA, pero no tienen impacto directo en la estructura del diccionario de datos y no se repiten aquí.
 
 # 12. Modelo lógico resumido previo al ER
 
@@ -799,17 +806,17 @@ DP-OP-09 a DP-OP-13 (tolerancia y políticas de cancelación/devolución) y DP-T
 
 - Núcleo operativo: Cabina → BloqueoCabina / HistorialEstadoCabina; Proveedor → IndisponibilidadProveedor.
 
-- Núcleo financiero: Reservacion → Pago → Devolucion (tipo_devolucion); ReservacionTratamiento → Devolucion para devoluciones parciales; Pago → TransaccionPago cuando exista integración con una pasarela externa.
+- Núcleo financiero: Reservacion → Pago → Devolucion (tipo_devolucion); ReservacionTratamiento → Devolucion para devoluciones parciales; Pago → TransaccionPago cuando se implemente la integración con Stripe (DP-TEC-02).
 
-- Núcleo operativo pendiente (propuesta, sección 7): ParametroOperativo / DiaLaborable / ExcepcionOperativa — estructura definida, valores pendientes de aprobación (DP-OP-01 a DP-OP-08).
+- Núcleo operativo aprobado (sección 7): ParametroOperativo / DiaLaborable / ExcepcionOperativa — estructura definida y valores aprobados (DP-OP-01 a DP-OP-08, RN-91 a RN-98).
 
 # 13. Resultado de esta etapa
 
-El modelo corregido y confirmado queda compuesto por 22 entidades obligatorias más 1 entidad opcional (TransaccionPago, aplicable únicamente si se integra una pasarela de pago externa), para un total de **23 entidades**. Este número no cambia respecto a la versión anterior porque las correcciones de esta etapa se resolvieron mediante campos nuevos en entidades ya existentes (Reservacion.estado_reservacion, Devolucion.tipo_devolucion) y no mediante entidades adicionales obligatorias.
+El modelo corregido y confirmado queda compuesto por 25 entidades obligatorias más 1 entidad opcional (TransaccionPago, aplicable únicamente si se integra la pasarela de pago externa Stripe), para un total de **26 entidades**. Respecto al conteo previo de 23, esta actualización incorpora ParametroOperativo, DiaLaborable y ExcepcionOperativa (sección 7) como entidades obligatorias, dado que sus valores ya cuentan con aprobación de negocio; el resto del modelo no cambia de estructura.
 
-Respecto a la versión anterior del diccionario, esta corrección: (1) actualizó la referencia de casos de uso a CU-01 a CU-43; (2) resolvió el uso ambiguo del estado PENDIENTE mediante el ciclo formal de dos niveles Reservacion.estado_reservacion / ReservacionTratamiento.estado (sección 4); (3) incorporó Reservacion.estado_reservacion; (4) cambió el default de ReservacionTratamiento.estado a PENDIENTE y normalizó su catálogo a PENDIENTE, CONFIRMADO, EN_ATENCION, COMPLETADO y CANCELADO, incluyendo la transición PENDIENTE→CANCELADO; (6)-(7) eliminó la duración fija de 10 minutos de BloqueoTemporal y de las reglas estructurales, trasladándola a un parámetro operativo configurable; (10)-(11) confirmó, sin cambios, los catálogos técnicos únicos de Pago.estado_pago y Devolucion.estado_devolucion; (12) incorporó Devolucion.tipo_devolucion; (13) corrigió las cardinalidades Reservacion→Pago, Pago→Devolucion, ReservacionTratamiento→Devolucion y Pago→TransaccionPago a 1:0..N.
+Respecto a la versión anterior del diccionario, esta corrección: (1) actualizó la referencia de casos de uso a CU-01 a CU-43; (2) resolvió el uso ambiguo del estado PENDIENTE mediante el ciclo formal de dos niveles Reservacion.estado_reservacion / ReservacionTratamiento.estado (sección 4); (3) incorporó Reservacion.estado_reservacion; (4) cambió el default de ReservacionTratamiento.estado a PENDIENTE y normalizó su catálogo a PENDIENTE, CONFIRMADO, EN_ATENCION, COMPLETADO y CANCELADO, incluyendo la transición PENDIENTE→CANCELADO; (6)-(7) eliminó la duración fija de 10 minutos de BloqueoTemporal y de las reglas estructurales, trasladándola a un parámetro operativo configurable, hoy aprobado en 15 minutos; (10)-(11) confirmó, sin cambios, los catálogos técnicos únicos de Pago.estado_pago y Devolucion.estado_devolucion; (12) incorporó Devolucion.tipo_devolucion; (13) corrigió las cardinalidades Reservacion→Pago, Pago→Devolucion, ReservacionTratamiento→Devolucion y Pago→TransaccionPago a 1:0..N.
 
-Adicionalmente, la sección 7 documenta tres entidades estructurales propuestas para el modelo operativo de agenda (ParametroOperativo, DiaLaborable, ExcepcionOperativa); no se incorporan todavía al conteo confirmado de 23 entidades porque sus valores dependen de aprobación del negocio (sección 11). Quedan como decisiones pendientes antes de construir el esquema físico definitivo: DP-EC-01 (fórmula exacta de importe), DP-EC-02 (tratamiento económico de pago aprobado con disponibilidad perdida) y DP-OP-01 a DP-OP-08 (parámetros operativos de agenda). El Diagrama Entidad–Relación deberá representar esta versión actualizada del modelo, diferenciando de forma explícita las 23 entidades confirmadas de las entidades operativas propuestas y pendientes de aprobación.
+Adicionalmente, la sección 7 documenta las tres entidades operativas de agenda (ParametroOperativo, DiaLaborable, ExcepcionOperativa), ya incorporadas al conteo confirmado de 26 entidades porque sus valores fueron aprobados mediante *Decisiones Aprobadas TZISCA* (sección 11): DP-EC-01 (fórmula del importe), DP-EC-02 (tratamiento económico de pago aprobado con disponibilidad perdida) y DP-OP-01 a DP-OP-08 (parámetros operativos de agenda) quedan todas Aprobada. El Diagrama Entidad–Relación deberá representar esta versión actualizada del modelo con sus 26 entidades confirmadas.
 
 # 14. Fuentes documentales del proyecto utilizadas
 
@@ -819,16 +826,18 @@ Adicionalmente, la sección 7 documenta tres entidades estructurales propuestas 
 
 - TZISCA – Documento de Casos de Uso CU-01 a CU-43.
 
-- TZISCA – Reglas de Negocio Horario y Políticas, RN-01 a RN-90 (documento canónico vigente; sustituye a la referencia previa "Reglas de Negocio RN-01 a RN-72", correspondiente al documento excluido "Reglas de Negocio TZISCA Actualizadas", conforme al Control documental TZISCA).
+- TZISCA – Reglas de Negocio Horario y Políticas, RN-01 a RN-108 (documento canónico vigente, con RN-91 a RN-108 incorporadas conforme a *Decisiones Aprobadas TZISCA*; sustituye a la referencia previa "Reglas de Negocio RN-01 a RN-72", correspondiente al documento excluido "Reglas de Negocio TZISCA Actualizadas", conforme al Control documental TZISCA).
 
 - TZISCA – Diseño de API REST.
 
 - TZISCA – Criterios de Aceptación CU-01 a CU-43.
 
+- TZISCA – Decisiones Aprobadas TZISCA (cierre de DP-OP-01 a DP-OP-13, DP-EC-01 a DP-EC-02 y DP-TEC-01 a DP-TEC-03).
+
 # 15. Cierre del documento
 
-Estado del documento: CERRADO. Esta versión corregida cierra el Diccionario de Datos y Modelo de Datos Depurado de TZISCA conforme a las 12 instrucciones de corrección solicitadas el 08/09/2026 (referencias actualizadas, Reservacion.estado_reservacion, ReservacionTratamiento.estado, BloqueoTemporal.fecha_expiracion, catálogos de Pago y Devolucion, TransaccionPago opcional, DP-EC-01 sin fórmula inventada, configuración operativa pendiente de modelado físico, relaciones y decisiones pendientes).
+Estado del documento: CERRADO. Esta versión corregida cierra el Diccionario de Datos y Modelo de Datos Depurado de TZISCA conforme a las 12 instrucciones de corrección solicitadas el 08/09/2026 (referencias actualizadas, Reservacion.estado_reservacion, ReservacionTratamiento.estado, BloqueoTemporal.fecha_expiracion, catálogos de Pago y Devolucion, TransaccionPago opcional, DP-EC-01 sin fórmula inventada, configuración operativa pendiente de modelado físico, relaciones y decisiones pendientes). El 09/09/2026 se actualizó para incorporar los valores aprobados por *Decisiones Aprobadas TZISCA*, sin reabrir el resto del documento.
 
-El trabajo se realizó sobre la versión vigente del documento: no se reconstruyó desde cero, no se eliminó ninguna entidad válida y no se inventó ningún valor operativo o económico pendiente de aprobación de negocio. Las decisiones que siguen pendientes de aprobación (DP-EC-01, DP-EC-02, DP-OP-01 a DP-OP-13, DP-TEC-01 a DP-TEC-03) permanecen documentadas como tales y no fueron resueltas ni asumidas por defecto.
+El trabajo se realizó sobre la versión vigente del documento: no se reconstruyó desde cero y no se eliminó ninguna entidad válida. Las decisiones DP-EC-01, DP-EC-02, DP-OP-01 a DP-OP-13 y DP-TEC-01 a DP-TEC-03 quedaron formalmente aprobadas mediante *Decisiones Aprobadas TZISCA* y sus valores se incorporaron exactamente como fueron aprobados, sin inventar ni suponer ningún valor adicional.
 
 Con este cierre, el documento queda listo para utilizarse como fuente oficial del Diagrama Entidad–Relación, del modelo físico en SQL Server, del Diseño de API REST y de la Matriz de Trazabilidad de TZISCA.

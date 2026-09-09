@@ -31,7 +31,7 @@ Cada caso de uso contiene actor principal, objetivo, precondiciones, flujo princ
 
 - Los estados definidos para cada tratamiento son: Pendiente, Confirmado, Cancelado, En atención y Completado.
 
-- Los horarios seleccionados en el carrito pueden bloquearse temporalmente durante la duración configurable del bloqueo temporal conforme al parámetro operativo aprobado. Si el Cliente abandona el proceso o vence esa duración, los bloqueos se liberan automáticamente.
+- Los horarios seleccionados en el carrito pueden bloquearse temporalmente durante la duración del bloqueo temporal aprobada como parámetro operativo: 15 minutos (DP-OP-08 / RN-98). Si el Cliente abandona el proceso o vence esa duración, los bloqueos se liberan automáticamente.
 
 - La disponibilidad se valida durante todo el intervalo del tratamiento y debe impedir traslapes de una misma cabina.
 
@@ -389,7 +389,7 @@ Reglas relacionadas
 
 - Cada elemento se gestiona de forma independiente.
 
-- La vigencia del bloqueo corresponde a la duración configurable del bloqueo temporal conforme al parámetro operativo aprobado.
+- La vigencia del bloqueo corresponde al parámetro operativo aprobado para la duración del bloqueo temporal: 15 minutos (DP-OP-08 / RN-98).
 
 - Al eliminar o cambiar un horario, el bloqueo anterior se libera inmediatamente.
 
@@ -431,9 +431,11 @@ Flujo principal
 >
 > 8\. Puede priorizar una cabina especializada frente a una multifuncional cuando ambas satisfacen los mismos criterios.
 >
-> 9\. TZISCA presenta una cabina como recomendada y muestra otras alternativas compatibles.
+> 9\. Si aun así persiste un empate, el sistema aplica la prioridad configurada y, en última instancia, ordena por id_cabina ascendente para garantizar un resultado reproducible.
 >
-> 10\. El cliente consulta la información de las opciones.
+> 10\. TZISCA presenta una cabina como recomendada y muestra otras alternativas compatibles.
+>
+> 11\. El cliente consulta la información de las opciones.
 
 Flujos alternos / excepciones
 
@@ -450,6 +452,8 @@ Reglas relacionadas
 - La recomendación debe respetar primero compatibilidad, capacidad y estado operativo.
 
 - Las preferencias del cliente solo personalizan entre opciones válidas.
+
+- El algoritmo es determinista y reproducible conforme a DP-TEC-03 (RN-108): compatibilidad, capacidad, estado operativo, disponibilidad, preferencias, prioridad a cabina especializada, prioridad configurada y, como desempate final, id_cabina ascendente.
 
 - La recomendación no tendrá carácter clínico.
 
@@ -585,7 +589,7 @@ Flujo principal
 >
 > 2\. TZISCA crea un bloqueo temporal de la cabina y el intervalo.
 >
-> 3\. El bloqueo tendrá la duración configurable del bloqueo temporal conforme al parámetro operativo aprobado.
+> 3\. El bloqueo tendrá una vigencia de 15 minutos, conforme al parámetro operativo aprobado (DP-OP-08 / RN-98).
 >
 > 4\. Durante ese periodo el mismo recurso no se ofrecerá a otros clientes para intervalos que entren en conflicto.
 >
@@ -601,7 +605,7 @@ Flujos alternos / excepciones
 
 - Si abandona el proceso, TZISCA libera los bloqueos temporales.
 
-- Si vence la duración configurable del bloqueo temporal conforme al parámetro operativo aprobado sin que la reservación se confirme, TZISCA libera automáticamente todos los horarios temporales.
+- Si vencen los 15 minutos de vigencia del bloqueo temporal (parámetro operativo aprobado, DP-OP-08 / RN-98) sin que la reservación se confirme, TZISCA libera automáticamente todos los horarios temporales.
 
 Postcondiciones
 
@@ -615,7 +619,7 @@ Reglas relacionadas
 
 - El bloqueo temporal no debe mantenerse indefinidamente.
 
-- La vigencia aplicable será la duración configurable del bloqueo temporal conforme al parámetro operativo aprobado; el caso de uso no establece un valor fijo.
+- La vigencia aplicable es de 15 minutos, conforme al parámetro operativo aprobado (DP-OP-08 / RN-98).
 
 ————————————————————————————
 
@@ -681,7 +685,7 @@ Flujos alternos / excepciones
 
 - Si un bloqueo temporal expira, TZISCA lo libera, revalida la disponibilidad y no confirma automáticamente la Reservacion.
 
-- Si el Pago ya está Pagado y al revalidar se perdió disponibilidad, TZISCA no confirma el ReservacionTratamiento afectado, informa al Cliente, conserva el Pago y su trazabilidad y envía el caso al tratamiento económico definido por las políticas o por el proceso de conciliación. Mientras esa política permanezca pendiente, no se presume una devolución automática.
+- Si el Pago ya está Pagado y al revalidar se perdió disponibilidad, TZISCA no confirma el ReservacionTratamiento afectado, informa al Cliente del conflicto y mantiene la Reservacion en EN_PROCESO conforme a DP-EC-02 (RN-105). El Cliente podrá: (a) seleccionar otra cabina u horario disponible; (b) conservar los tratamientos válidos y solicitar devolución parcial del tratamiento afectado; o (c) cancelar toda la operación y recibir devolución total. TZISCA no genera una confirmación automática ni asume una devolución automática sin decisión del Cliente, y conserva la trazabilidad de toda acción.
 
 Postcondiciones
 
@@ -2053,7 +2057,7 @@ Flujos alternos / excepciones
 
 - Si el Cliente cancela el proceso de pago, el Pago queda Cancelado, la Reservacion permanece EN_PROCESO y no se confirma.
 
-- Si un bloqueo temporal expira, TZISCA lo libera, revalida la disponibilidad y no confirma automáticamente. Si el Pago ya está Pagado y se perdió disponibilidad, no confirma el ReservacionTratamiento afectado, informa al Cliente, conserva el Pago y su trazabilidad y remite el caso al tratamiento económico definido por las políticas o por conciliación; mientras esa política esté pendiente, no se presume una devolución automática.
+- Si un bloqueo temporal expira, TZISCA lo libera, revalida la disponibilidad y no confirma automáticamente. Si el Pago ya está Pagado y se perdió disponibilidad, no confirma el ReservacionTratamiento afectado, informa al Cliente y mantiene la Reservacion en EN_PROCESO conforme a DP-EC-02 (RN-105): el Cliente podrá seleccionar otra cabina u horario disponible, conservar los tratamientos válidos y solicitar devolución parcial del tratamiento afectado, o cancelar toda la operación y recibir devolución total, conservando siempre la trazabilidad.
 
 - Si el sistema recibe respuestas repetidas de una misma operación, evita registrar cobros duplicados y conserva la trazabilidad técnica.
 
@@ -2219,7 +2223,7 @@ Reglas relacionadas
 
 Actor principal: Sistema TZISCA / Administrador general / Recepción y cabinas
 
-Objetivo: Gestionar una Devolucion de tipo PARCIAL o TOTAL cuando una cancelación tenga un Pago Pagado y la política aprobada establezca un importe reembolsable.
+Objetivo: Gestionar una Devolucion de tipo PARCIAL o TOTAL cuando una cancelación tenga un Pago Pagado y la política aprobada (RN-101 a RN-103, DP-OP-11 a DP-OP-13) establezca un importe reembolsable.
 
 Precondiciones
 
@@ -2227,7 +2231,7 @@ Precondiciones
 
 - Existe un Pago en estado Pagado relacionado con la Reservacion.
 
-- Existe una política aprobada que permite determinar el importe reembolsable; si la política está pendiente, no se presume una devolución automática.
+- La política de devolución (RN-101 a RN-103) permite determinar el importe reembolsable conforme a la anticipación de la cancelación: 100% con 24 horas o más, 50% entre 6 y menos de 24 horas, o sin devolución con menos de 6 horas, inasistencia, servicio iniciado o servicio completado.
 
 Flujo principal
 

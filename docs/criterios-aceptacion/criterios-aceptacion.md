@@ -124,7 +124,7 @@ Los siguientes criterios corresponden a las funcionalidades disponibles para el 
 
 CA-10.1 — Creación del bloqueo. Dado que el Cliente selecciona una cabina, fecha y hora válidas, cuando TZISCA comprueba su disponibilidad, entonces deberá crear un bloqueo temporal para ese recurso e intervalo.
 
-CA-10.2 — Duración configurable. Dado que existe una configuración operativa aprobada para la duración del bloqueo temporal, cuando TZISCA cree el bloqueo, entonces deberá calcular su vencimiento usando ese parámetro y deberá poder comprobarse que no utiliza un valor fijo incorporado en el flujo.
+CA-10.2 — Duración configurable de 15 minutos. Dado que la duración del bloqueo temporal está aprobada como parámetro operativo (15 minutos, DP-OP-08 / RN-98), cuando TZISCA cree el bloqueo, entonces deberá calcular su vencimiento usando ese parámetro configurado y no un valor fijo incorporado directamente en el código.
 
 CA-10.3 — Exclusividad. Dado un bloqueo temporal vigente, cuando otro Cliente intente confirmar un tratamiento que entre en conflicto con el mismo recurso e intervalo, entonces TZISCA deberá impedir esa confirmación.
 
@@ -158,7 +158,7 @@ CA-11.9 — Pago cancelado. Dado que el Pago quede en estado Cancelado, cuando T
 
 CA-11.10 — Bloqueo expirado. Dado que un bloqueo temporal haya expirado, cuando se intente continuar la confirmación, entonces TZISCA deberá liberarlo, revalidar la disponibilidad y no deberá confirmar automáticamente.
 
-CA-11.11 — Pago aprobado con disponibilidad perdida. Dado un Pago Pagado y una revalidación que detecte disponibilidad perdida, cuando TZISCA procese el resultado, entonces no deberá confirmar el tratamiento afectado, deberá informar al Cliente, conservar el Pago y su trazabilidad e identificar el caso para conciliación o devolución conforme a la política aprobada; mientras esa política esté pendiente, no deberá presumir una devolución automática.
+CA-11.11 — Pago aprobado con disponibilidad perdida. Dado un Pago Pagado y una revalidación que detecte disponibilidad perdida, cuando TZISCA procese el resultado, entonces no deberá confirmar el tratamiento afectado, deberá mantener la Reservacion en EN_PROCESO, informar al Cliente del conflicto conforme a DP-EC-02 (RN-105) y ofrecerle seleccionar otra cabina u horario disponible, conservar los tratamientos válidos con devolución parcial del afectado, o cancelar la operación con devolución total, sin presumir ninguna de estas acciones de forma automática.
 
 CA-11.12 — Prevención de confirmación duplicada. Dada una Reservacion ya confirmada, cuando TZISCA reciba nuevamente la misma respuesta de pago o la misma solicitud de confirmación, entonces no deberá crear otra Reservacion, repetir la transición a CONFIRMADO ni duplicar las ocupaciones reales.
 
@@ -690,7 +690,7 @@ CA-39.9 — Bloqueo expirado. Dado que un bloqueo temporal expire antes de la co
 
 CA-39.10 — Disponibilidad perdida antes del pago aprobado. Si la revalidación detecta que un recurso ya no está disponible y el Pago no está Pagado, TZISCA deberá impedir la confirmación e informar al Cliente para que modifique o elimine el tratamiento afectado.
 
-CA-39.11 — Pago aprobado con disponibilidad perdida. Dado un Pago Pagado y una revalidación fallida, cuando TZISCA identifique el tratamiento afectado, entonces no deberá confirmarlo, deberá conservar la trazabilidad económica e identificar el caso para conciliación o devolución según la política aprobada; mientras esa política esté pendiente, no deberá crear ni presumir una devolución automática.
+CA-39.11 — Pago aprobado con disponibilidad perdida. Dado un Pago Pagado y una revalidación fallida, cuando TZISCA identifique el tratamiento afectado, entonces no deberá confirmarlo, deberá mantener la Reservacion en EN_PROCESO y ofrecer al Cliente, conforme a DP-EC-02 (RN-105), las opciones de seleccionar otra cabina u horario disponible, conservar los tratamientos válidos con devolución parcial del afectado, o cancelar la operación con devolución total, conservando la trazabilidad y sin crear ni presumir una devolución automática.
 
 CA-39.12 — Prevención de cobro duplicado. Dada una respuesta repetida para la misma operación externa, cuando TZISCA la reciba, entonces no deberá crear un segundo cobro y deberá conservar una sola referencia económica con su trazabilidad técnica.
 
@@ -778,6 +778,54 @@ CA-43.11 — Límite reembolsable. Antes de completar una devolución, TZISCA de
 
 CA-43.12 — Prevención de duplicados. Dada una solicitud repetida para la misma devolución, cuando TZISCA la procese, entonces no deberá registrar dos reembolsos por el mismo importe y concepto.
 
-# 6. Nota para revisión
+# 6. Criterios de aceptación — Decisiones aprobadas (RN-91 a RN-108)
 
-Estos criterios son la base verificable para las pruebas funcionales de CU-01 a CU-43. Las políticas económicas pendientes deberán aprobarse antes de asignar valores o automatismos que no estén definidos en las reglas de negocio oficiales.
+Estos criterios verifican los valores y condiciones operativas, económicas y técnicas aprobadas mediante el documento *Decisiones Aprobadas TZISCA*, que sustituyen el estado pendiente de DP-OP-01 a DP-OP-13, DP-EC-01 a DP-EC-02 y DP-TEC-01 a DP-TEC-03.
+
+CA-91.1 — Apertura general a las 09:00. Dado un horario anterior a las 09:00, cuando el Cliente o Recepción consulten disponibilidad, entonces TZISCA no deberá ofrecerlo como horario reservable.
+
+CA-92.1 — Cierre general a las 20:00 y finalización máxima. Dado un tratamiento cuya hora de inicio más su duración excedería las 20:00, cuando se calcule su disponibilidad, entonces TZISCA no deberá ofrecer ese horario como válido.
+
+CA-93.1 — Días laborales de lunes a sábado. Dado un día comprendido entre lunes y sábado, cuando se consulte disponibilidad, entonces TZISCA deberá tratarlo como día laborable regular.
+
+CA-93.2 — Domingo no laboral. Dada una fecha en domingo, cuando el Cliente o Recepción intenten reservar, entonces TZISCA no deberá ofrecer horarios disponibles, salvo que exista una excepción operativa registrada para esa fecha.
+
+CA-94.1 — Excepciones operativas. Dado un festivo, cierre extraordinario u horario especial registrado como excepción operativa, cuando se consulte disponibilidad para esa fecha, entonces TZISCA deberá aplicar la excepción en lugar del calendario regular.
+
+CA-95.1 — Intervalos de agenda de 30 minutos. Dado que TZISCA genera los horarios de inicio ofrecidos al Cliente, cuando construya la agenda disponible, entonces deberá hacerlo en intervalos de 30 minutos sin alterar la duración real del tratamiento.
+
+CA-96.1 — Anticipación mínima de 2 horas. Dado que un Cliente intenta reservar con menos de 2 horas de anticipación respecto al inicio del servicio, cuando envíe la solicitud, entonces TZISCA deberá rechazarla.
+
+CA-97.1 — Anticipación máxima de 60 días. Dado que un Cliente intenta reservar con más de 60 días de anticipación, cuando envíe la solicitud, entonces TZISCA deberá rechazarla.
+
+CA-98.1 — Bloqueo temporal de 15 minutos. Dado que TZISCA crea un bloqueo temporal, cuando calcule su expiración, entonces deberá fijarla en 15 minutos desde la creación o renovación válida del bloqueo (DP-OP-08 / RN-98).
+
+CA-99.1 — Tolerancia de 15 minutos. Dado un Cliente que llega hasta 15 minutos después del inicio programado, cuando Recepción evalúe la situación, entonces deberá verificar si el servicio todavía puede realizarse sin afectar reservaciones posteriores antes de considerarlo inasistencia para efectos de devolución.
+
+CA-101.1 — Devolución del 100%. Dado que una cancelación se realiza con 24 horas o más de anticipación respecto al inicio del servicio y existe un Pago Pagado, cuando TZISCA calcule el importe reembolsable, entonces deberá determinar una devolución del 100%.
+
+CA-101.2 — Devolución del 50%. Dado que una cancelación se realiza con al menos 6 horas y menos de 24 horas de anticipación y existe un Pago Pagado, cuando TZISCA calcule el importe reembolsable, entonces deberá determinar una devolución del 50%.
+
+CA-101.3 — Sin devolución por anticipación insuficiente. Dado que una cancelación se realiza con menos de 6 horas de anticipación, cuando TZISCA evalúe la devolución, entonces no deberá determinar ningún importe reembolsable.
+
+CA-102.1 — Cancelación por causa atribuible al spa. Dado que Administrador general o Recepción y cabinas cancelan por causa operativa atribuible al spa, cuando TZISCA calcule la devolución, entonces deberá determinar el 100% del importe afectado, independientemente de la anticipación.
+
+CA-103.1 — Sin devolución por inasistencia o servicio iniciado/completado. Dado que la cancelación corresponde a una inasistencia, o el servicio ya inició o se completó, cuando TZISCA evalúe la devolución, entonces no deberá crear ninguna Devolucion.
+
+CA-104.1 — Precio por persona. Dado un Tratamiento con precio_base definido, cuando se agregue a un ReservacionTratamiento, entonces TZISCA deberá fijar precio_unitario igual al precio_base vigente al momento de reservar.
+
+CA-104.2 — Cálculo del importe y del total. Dado un ReservacionTratamiento con precio_unitario y numero_personas, cuando TZISCA calcule su importe, entonces deberá aplicar importe = precio_unitario × numero_personas, y el total de la Reservacion deberá ser la suma de los importes de todos sus tratamientos, sin cargos adicionales en el MVP.
+
+CA-105.1 — Pago aprobado con disponibilidad perdida. Dado un Pago en estado Pagado cuya revalidación detecta pérdida de disponibilidad, cuando TZISCA procese el conflicto, entonces no deberá confirmar la Reservacion, deberá mantenerla en EN_PROCESO e informar al Cliente las tres opciones aprobadas: seleccionar otra cabina u horario disponible, conservar los tratamientos válidos con devolución parcial del afectado, o cancelar la operación con devolución total.
+
+CA-106.1 — Autenticación con Identity y JWT. Dado un usuario con credenciales válidas, cuando inicie sesión, entonces TZISCA deberá emitir un access token JWT y permitir su renovación mediante un refresh token seguro, aplicando autorización por rol y permisos.
+
+CA-106.2 — Rechazo por rol o permiso insuficiente. Dado un usuario autenticado sin el rol o permiso requerido, cuando intente acceder a una función restringida, entonces TZISCA deberá denegar el acceso.
+
+CA-107.1 — Pasarela Stripe desacoplada mediante PaymentService. Dado que TZISCA procesa un pago, cuando se comunique con el proveedor externo, entonces deberá hacerlo a través de PaymentService, sin acoplar la lógica de negocio directamente a Stripe.
+
+CA-108.1 — Recomendación determinista y reproducible. Dado el mismo conjunto de datos de cabinas, tratamiento y preferencias, cuando TZISCA genere la recomendación en distintos momentos, entonces deberá producir siempre el mismo resultado, aplicando en orden compatibilidad, capacidad, estado operativo, disponibilidad, preferencias, especialización, prioridad configurada e id_cabina ascendente como desempate final.
+
+# 7. Nota para revisión
+
+Estos criterios son la base verificable para las pruebas funcionales de CU-01 a CU-43. Las decisiones operativas, económicas y técnicas antes pendientes (DP-OP-01 a DP-OP-13, DP-EC-01 a DP-EC-02, DP-TEC-01 a DP-TEC-03) ya fueron aprobadas y sus valores se encuentran verificados en la sección 6; cualquier nueva decisión pendiente que surja en el futuro deberá aprobarse antes de asignar valores o automatismos que no estén definidos en las reglas de negocio oficiales.

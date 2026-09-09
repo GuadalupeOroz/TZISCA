@@ -266,23 +266,15 @@ La documentación funcional y técnica se encuentra organizada en Markdown para 
 
 El Sprint 1 existe como archivo, pero está vacío y pendiente de planificación. Las interfaces V3 ya están documentadas; quedan pendientes su validación funcional y las capturas de la aplicación implementada.
 
-## Decisiones pendientes
+## Decisiones aprobadas
 
-Antes de cerrar ciertos módulos todavía deben aprobarse algunos parámetros:
+Las decisiones operativas, económicas y técnicas críticas del proyecto quedaron formalmente cerradas mediante el documento *Decisiones Aprobadas TZISCA* e incorporadas como reglas de negocio RN-91 a RN-108: horarios de apertura y cierre, días laborables y excepciones, intervalos de agenda, anticipación mínima y máxima, duración del bloqueo temporal, tolerancia, políticas de cancelación y devolución, fórmula del importe, tratamiento del pago aprobado con disponibilidad perdida, mecanismo de autenticación, pasarela de pago y algoritmo de recomendación.
 
-- Horario de apertura y cierre.
-- Días laborables y no laborables.
-- Duración de intervalos de agenda.
-- Anticipación mínima y máxima de reservación.
-- Duración del bloqueo temporal.
-- Política de tolerancia.
-- Política de cancelación.
-- Condiciones de devolución.
-- Fórmula del importe.
-- Tratamiento económico del pago aprobado con disponibilidad perdida (DP-EC-02).
-- Pasarela de pago.
-- Mecanismo concreto de autenticación.
-- Algoritmo determinista de recomendación.
+Detalle completo en [Reglas de negocio](docs/reglas-negocio/reglas-negocio.md#18-decisiones-aprobadas).
+
+Permanece pendiente, por no estar incluida en ese cierre:
+
+- Notificaciones y recordatorios (no contempladas en el alcance funcional actual).
 
 ---
 

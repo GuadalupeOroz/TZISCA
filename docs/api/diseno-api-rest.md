@@ -11,11 +11,13 @@ Sistema Web de Reservas, Recomendación y Gestión de Cabinas para Spa
 | **Arquitectura base** | Frontend Angular → API REST .NET Core → SQL Server |
 | **Formato de intercambio** | JSON |
 | **Prefijo propuesto** | /api/v1 |
-| **Autenticación** | Sesión autenticada/token; mecanismo concreto pendiente de aprobación (DP-TEC-01). No se impone JWT como decisión oficial. |
+| **Autenticación** | ASP.NET Core Identity + JWT como access token, con refresh token seguro para renovación de sesión (DP-TEC-01, RN-106). Autorización por rol y permisos. |
 
-Nota de versión — documento cerrado. Esta es la versión corregida y cerrada del Diseño de API REST TZISCA v1, actualizada el 08/09/2026 sobre la versión vigente del documento (sin crear una API nueva desde cero). Se mantienen /api/v1, REST, JSON, Angular como frontend, ASP.NET Core como backend, SQL Server como base de datos, y las referencias CU-01 a CU-43 y RN-01 a RN-90. Cambios principales: (1) eliminación de toda referencia a una duración fija de 10 minutos en bloqueos temporales, sustituida por la duración configurable del parámetro operativo aprobado; (2) flujo REST principal corregido para incluir explícitamente POST /reservations (Reservacion EN_PROCESO / ReservacionTratamiento PENDIENTE) antes de POST /payments, y POST /reservations/{id}/confirm (Reservacion CONFIRMADA / ReservacionTratamiento CONFIRMADO) después de la revalidación; (3) POST /reservations ya no confirma ni devuelve CONFIRMADA/PAGADO; (4) POST /payments ya no confía en un monto enviado por Angular, calculado por el backend, con PAYMENT_AMOUNT_MISMATCH como error posible; (5) checklist explícito de POST /reservations/{id}/confirm y manejo de pago FALLIDO, bloqueo expirado y pago PAGADO con disponibilidad perdida (DP-EC-02, sin generar devolución automática); (6) catálogos de estado de Pago, Devolucion, Reservacion y ReservacionTratamiento normalizados en mayúsculas conforme al Diccionario de Datos, y tipo_devolucion como campo propio; (7) eliminación de la definición duplicada de GET /reservations/{id}/payments, conservada una sola vez como PAY-03; (8) catálogo de códigos de error de negocio agregado/normalizado; (9) autenticación y pasarela de pago mantenidas como decisiones pendientes (DP-TEC-01, DP-TEC-02); (10) DTO revisados para coincidir con los estados y campos del Diccionario actualizado; (11) matriz de cobertura CU-01 a CU-43 verificada y corregida; (12) conteo de endpoints recalculado a 66. El documento queda listo como contrato de implementación de ASP.NET Core y Angular.
+Nota de versión — documento cerrado. Esta es la versión corregida y cerrada del Diseño de API REST TZISCA v1, actualizada el 08/09/2026 sobre la versión vigente del documento (sin crear una API nueva desde cero). Se mantienen /api/v1, REST, JSON, Angular como frontend, ASP.NET Core como backend, SQL Server como base de datos, y las referencias CU-01 a CU-43 y RN-01 a RN-90. Cambios principales: (1) eliminación de toda referencia a una duración fija de 10 minutos en bloqueos temporales, sustituida por la duración configurable del parámetro operativo aprobado; (2) flujo REST principal corregido para incluir explícitamente POST /reservations (Reservacion EN_PROCESO / ReservacionTratamiento PENDIENTE) antes de POST /payments, y POST /reservations/{id}/confirm (Reservacion CONFIRMADA / ReservacionTratamiento CONFIRMADO) después de la revalidación; (3) POST /reservations ya no confirma ni devuelve CONFIRMADA/PAGADO; (4) POST /payments ya no confía en un monto enviado por Angular, calculado por el backend, con PAYMENT_AMOUNT_MISMATCH como error posible; (5) checklist explícito de POST /reservations/{id}/confirm y manejo de pago FALLIDO, bloqueo expirado y pago PAGADO con disponibilidad perdida (DP-EC-02, sin generar devolución automática); (6) catálogos de estado de Pago, Devolucion, Reservacion y ReservacionTratamiento normalizados en mayúsculas conforme al Diccionario de Datos, y tipo_devolucion como campo propio; (7) eliminación de la definición duplicada de GET /reservations/{id}/payments, conservada una sola vez como PAY-03; (8) catálogo de códigos de error de negocio agregado/normalizado; (9) trazabilidad de las decisiones técnicas DP-TEC-01 y DP-TEC-02, formalmente cerradas en la actualización posterior; (10) DTO revisados para coincidir con los estados y campos del Diccionario actualizado; (11) matriz de cobertura CU-01 a CU-43 verificada y corregida; (12) conteo de endpoints actualizado; la versión vigente documenta 67. El documento queda listo como contrato de implementación de ASP.NET Core y Angular.
 
-*Documento derivado del alcance funcional, Casos de Uso CU-01 a CU-43, Reglas de Negocio RN-01 a RN-90 y el Diccionario de Datos TZISCA (versión corregida y cerrada).*
+Nota de actualización — 09/09/2026. *Decisiones Aprobadas TZISCA* cerró DP-OP-01 a DP-OP-13, DP-EC-01 a DP-EC-02 y DP-TEC-01 a DP-TEC-03 (RN-91 a RN-108). Esta actualización corrige las referencias a esas decisiones en este documento (autenticación con ASP.NET Core Identity + JWT y refresh token seguro, pasarela Stripe mediante PaymentService, bloqueo temporal de 15 minutos, políticas de cancelación/devolución y algoritmo de recomendación), incorpora AUTH-05 para renovar tokens y eleva el total documentado a 67 endpoints, sin incorporar claves, secretos ni la implementación real de Stripe.
+
+*Documento derivado del alcance funcional, Casos de Uso CU-01 a CU-43, Reglas de Negocio RN-01 a RN-108 y el Diccionario de Datos TZISCA (versión corregida y cerrada).*
 
 # 1. Propósito y alcance
 
@@ -39,7 +41,7 @@ Las rutas y DTO descritos aquí son un diseño de API. Cuando un detalle de impl
 
 - La disponibilidad se calcula sobre el intervalo completo del tratamiento.
 
-- Los bloqueos temporales duran conforme a la duración configurable del bloqueo temporal definida por el parámetro operativo aprobado, y protegen la selección del cliente.
+- Los bloqueos temporales duran 15 minutos, conforme al parámetro operativo aprobado (DP-OP-08, RN-98), y protegen la selección del cliente.
 
 - Los reintentos de pago generan trazabilidad nueva; no sobrescriben operaciones anteriores.
 
@@ -73,7 +75,7 @@ Catálogo de códigos de error de negocio (campo "code" del cuerpo de error), no
 | PAYMENT_NOT_APPROVED | El pago referenciado existe pero no está en PAGADO. 422 Unprocessable Entity. |
 | PAYMENT_ALREADY_APPROVED | Ya existe una confirmación previa para esta Reservacion/Pago. 409 Conflict. |
 | PAYMENT_AMOUNT_MISMATCH | El monto recibido no coincide con el total calculado por el backend. 422 Unprocessable Entity. |
-| PAYMENT_APPROVED_AVAILABILITY_LOST | El pago está PAGADO pero la disponibilidad revalidada ya no existe (DP-EC-02). 409 Conflict. |
+| PAYMENT_APPROVED_AVAILABILITY_LOST | El pago está PAGADO pero la disponibilidad revalidada ya no existe (DP-EC-02, RN-105). 409 Conflict. La Reservacion permanece EN_PROCESO; el Cliente resuelve el conflicto seleccionando otra cabina/horario mediante los endpoints de /cart y /temporary-blocks, o cancelando mediante /reservations y /refunds. |
 | PAYMENT_NOT_FOUND | El pago referenciado no existe o no pertenece al actor. 404 Not Found. |
 | REFUND_EXCEEDS_PAYMENT | El monto de la devolución supera el monto efectivamente pagado. 422 Unprocessable Entity. |
 | REFUND_ALREADY_COMPLETED | La devolución referenciada ya está COMPLETADA y no admite otra operación. 409 Conflict. |
@@ -93,11 +95,11 @@ Los casos de uso y reglas son la fuente funcional. Los endpoints automáticos no
 
 # 5. Catálogo de endpoints
 
-Se documentan 66 endpoints agrupados en los 14 módulos solicitados. La nomenclatura de DTO es consistente con los recursos del modelo y puede implementarse posteriormente en .NET.
+Se documentan 67 endpoints agrupados en los 14 módulos solicitados. La nomenclatura de DTO es consistente con los recursos del modelo y puede implementarse posteriormente en .NET.
 
 | **Módulo** | **Endpoints** | **Cobertura principal** |
 |----|----|----|
-| **/auth** | 4 | Registro, inicio/cierre de sesión y usuario autenticado. |
+| **/auth** | 5 | Registro, inicio/cierre y renovación segura de sesión, y usuario autenticado. |
 | **/users** | 5 | Usuarios, roles, estados y preferencias. |
 | **/treatments** | 5 | Catálogo y compatibilidades tratamiento-cabina. |
 | **/cabins** | 6 | Catálogo, ficha, compatibilidades y estado operativo. |
@@ -141,10 +143,10 @@ Se documentan 66 endpoints agrupados en los 14 módulos solicitados. La nomencla
 | **Método HTTP** | POST |
 | **Ruta** | /api/v1/auth/login |
 | **Actor autorizado** | Público |
-| **Descripción** | Autenticar al usuario y establecer su sesión/token. |
+| **Descripción** | Autenticar al usuario mediante ASP.NET Core Identity y emitir su access token JWT y refresh token (DP-TEC-01, RN-106). |
 | **Parámetros** | Sin parámetros de ruta. |
 | **Request** | {"correo":"ana@correo.com","password":"\*\*\*\*\*\*\*\*"} |
-| **Response** | {"accessToken":"\<token\>","usuario":{"id_usuario":101,"nombre":"Ana","rol":"Cliente"}} |
+| **Response** | {"accessToken":"\<jwt\>","refreshToken":"\<token\>","usuario":{"id_usuario":101,"nombre":"Ana","rol":"Cliente"}} |
 | **Código HTTP exitoso** | 200 OK |
 | **Códigos de error** | 400, 401 |
 | **Caso de uso relacionado** | CU-02 |
@@ -160,8 +162,8 @@ Se documentan 66 endpoints agrupados en los 14 módulos solicitados. La nomencla
 | **Método HTTP** | POST |
 | **Ruta** | /api/v1/auth/logout |
 | **Actor autorizado** | CL/AG/RC/PR |
-| **Descripción** | Cerrar la sesión autenticada. |
-| **Parámetros** | Header de autenticación. |
+| **Descripción** | Cerrar la sesión autenticada e invalidar el refresh token vigente. |
+| **Parámetros** | Header de autenticación (Bearer JWT). |
 | **Request** | {} |
 | **Response** | {"message":"Sesión cerrada correctamente."} |
 | **Código HTTP exitoso** | 200 OK |
@@ -179,8 +181,8 @@ Se documentan 66 endpoints agrupados en los 14 módulos solicitados. La nomencla
 | **Método HTTP** | GET |
 | **Ruta** | /api/v1/auth/me |
 | **Actor autorizado** | CL/AG/RC/PR |
-| **Descripción** | Consultar el usuario autenticado y su rol. |
-| **Parámetros** | Header de autenticación. |
+| **Descripción** | Consultar el usuario autenticado y su rol a partir del JWT recibido. |
+| **Parámetros** | Header de autenticación (Bearer JWT). |
 | **Request** | No aplica. |
 | **Response** | {"id_usuario":101,"nombre":"Ana","correo":"ana@correo.com","telefono":"9620000000","rol":"Cliente","activo":true} |
 | **Código HTTP exitoso** | 200 OK |
@@ -189,6 +191,25 @@ Se documentan 66 endpoints agrupados en los 14 módulos solicitados. La nomencla
 | **Regla de negocio relacionada** | RN-02 a RN-04 |
 | **DTO de entrada** | — |
 | **DTO de salida** | CurrentUserResponse |
+
+## AUTH-05 — POST /auth/refresh
+
+| **ID** | AUTH-05 |
+|----|----|
+| **Módulo** | /auth |
+| **Método HTTP** | POST |
+| **Ruta** | /api/v1/auth/refresh |
+| **Actor autorizado** | CL/AG/RC/PR con refresh token válido |
+| **Descripción** | Permitir obtener un nuevo access token JWT usando un refresh token válido, con renovación segura del refresh token cuando aplique. |
+| **Parámetros** | Sin parámetros de ruta; body con refreshToken. |
+| **Request** | {"refreshToken":"\<refresh-token\>"} |
+| **Response** | {"accessToken":"\<nuevo-access-token\>","refreshToken":"\<refresh-token-renovado-si-aplica\>"} |
+| **Código HTTP exitoso** | 200 OK |
+| **Códigos de error** | 400, 401 |
+| **Caso de uso relacionado** | CU-02 |
+| **Regla de negocio relacionada** | RN-01, RN-02, RN-106 |
+| **DTO de entrada** | RefreshTokenRequest |
+| **DTO de salida** | RefreshTokenResponse |
 
 # /users
 
@@ -510,14 +531,14 @@ Se documentan 66 endpoints agrupados en los 14 módulos solicitados. La nomencla
 | **Método HTTP** | GET |
 | **Ruta** | /api/v1/recommendations/cabins |
 | **Actor autorizado** | CL |
-| **Descripción** | Obtener cabinas compatibles y disponibles, destacando la recomendada. |
+| **Descripción** | Obtener cabinas compatibles y disponibles, destacando la recomendada mediante el algoritmo determinista aprobado (DP-TEC-03, RN-108). |
 | **Parámetros** | Query: id_tratamiento, numero_personas, fecha_hora_inicio, opcional fecha_hora_fin. |
 | **Request** | No aplica. |
 | **Response** | {"id_tratamiento":1,"numero_personas":2,"recomendada":{"id_cabina":1,"score":0.92,"razones":\["Compatible","Capacidad suficiente","Disponible","Especializada"\]},"alternativas":\[{"id_cabina":5,"score":0.81,"razones":\["Compatible","Disponible"\]}\]} |
 | **Código HTTP exitoso** | 200 OK |
 | **Códigos de error** | 400,401,404,409,422 |
 | **Caso de uso relacionado** | CU-07 |
-| **Regla de negocio relacionada** | RN-17 a RN-21 |
+| **Regla de negocio relacionada** | RN-17 a RN-21, RN-108 |
 | **DTO de entrada** | CabinRecommendationQuery |
 | **DTO de salida** | CabinRecommendationResponse |
 
@@ -825,7 +846,7 @@ Se documentan 66 endpoints agrupados en los 14 módulos solicitados. La nomencla
 | **Método HTTP** | POST |
 | **Ruta** | /api/v1/reservations/{id}/confirm |
 | **Actor autorizado** | CL/RC |
-| **Descripción** | Confirmar definitivamente una reservación EN_PROCESO. Debe comprobar: que la Reservacion exista; que estado_reservacion = EN_PROCESO; que exista el pago requerido en PAGADO; que ese pago pertenezca a la Reservacion; que el importe sea válido; los bloqueos temporales correspondientes; la disponibilidad revalidada; y que no exista una confirmación previa. Si todo es válido: Reservacion pasa de EN_PROCESO a CONFIRMADA, cada ReservacionTratamiento válido pasa de PENDIENTE a CONFIRMADO, y el BloqueoTemporal correspondiente pasa a CONFIRMADO (convertido funcionalmente en ocupación real). Si el pago está PAGADO pero AvailabilityService indica que la disponibilidad ya no existe, no se confirma: se responde 409 Conflict con PAYMENT_APPROVED_AVAILABILITY_LOST, conservando el Pago sin eliminarlo y sin generar automáticamente una devolución mientras DP-EC-02 siga pendiente. |
+| **Descripción** | Confirmar definitivamente una reservación EN_PROCESO. Debe comprobar: que la Reservacion exista; que estado_reservacion = EN_PROCESO; que exista el pago requerido en PAGADO; que ese pago pertenezca a la Reservacion; que el importe sea válido; los bloqueos temporales correspondientes; la disponibilidad revalidada; y que no exista una confirmación previa. Si todo es válido: Reservacion pasa de EN_PROCESO a CONFIRMADA, cada ReservacionTratamiento válido pasa de PENDIENTE a CONFIRMADO, y el BloqueoTemporal correspondiente pasa a CONFIRMADO (convertido funcionalmente en ocupación real). Si el pago está PAGADO pero AvailabilityService indica que la disponibilidad ya no existe, no se confirma: se responde 409 Conflict con PAYMENT_APPROVED_AVAILABILITY_LOST, la Reservacion permanece EN_PROCESO y se conserva el Pago sin eliminarlo, conforme a DP-EC-02 (RN-105). El Cliente resuelve el conflicto seleccionando otra cabina/horario, solicitando devolución parcial del tratamiento afectado o cancelando la operación con devolución total; TZISCA no genera ninguna de estas acciones automáticamente. |
 | **Parámetros** | Path: id. |
 | **Request** | {"id_pago":3001} |
 | **Response** | {"id_reservacion":9002,"estado_reservacion":"CONFIRMADA","tratamientos_confirmados":1,"estado_pago":"PAGADO"} |
@@ -1120,15 +1141,15 @@ Se documentan 66 endpoints agrupados en los 14 módulos solicitados. La nomencla
 | **Método HTTP** | POST |
 | **Ruta** | /api/v1/payments |
 | **Actor autorizado** | CL |
-| **Descripción** | Crear un intento de pago asociado a una reservación en proceso (EN_PROCESO) y procesarlo mediante el mecanismo configurado. El monto se obtiene y calcula en el backend a partir de la Reservacion/ReservacionTratamiento vigentes; no se confía en un monto enviado desde Angular. Si el request conserva un campo monto por razones técnicas, debe coincidir con el total calculado por el backend o se rechaza con PAYMENT_AMOUNT_MISMATCH. |
+| **Descripción** | Crear un intento de pago asociado a una reservación en proceso (EN_PROCESO) y procesarlo mediante PaymentService, la abstracción interna que integra Stripe como pasarela inicial aprobada (DP-TEC-02, RN-107) sin acoplar la lógica de negocio al proveedor externo. El monto se obtiene y calcula en el backend conforme a DP-EC-01/RN-104 (precio por persona) a partir de la Reservacion/ReservacionTratamiento vigentes; no se confía en un monto enviado desde Angular. Si el request conserva un campo monto por razones técnicas, debe coincidir con el total calculado por el backend o se rechaza con PAYMENT_AMOUNT_MISMATCH. |
 | **Parámetros** | Sin parámetros de ruta. |
-| **Request** | {"id_reservacion":9001,"metodo_pago":"METODO_CONFIGURADO","id_bloqueos":\[700\]} |
-| **Response** | {"id_pago":3001,"id_reservacion":9001,"monto":800,"moneda":"MXN","metodo_pago":"METODO_CONFIGURADO","estado_pago":"PROCESANDO","referencia":null,"fecha_creacion":"2026-09-08T09:05:00"} |
+| **Request** | {"id_reservacion":9001,"metodo_pago":"TARJETA","id_bloqueos":\[700\]} |
+| **Response** | {"id_pago":3001,"id_reservacion":9001,"monto":800,"moneda":"MXN","metodo_pago":"TARJETA","estado_pago":"PROCESANDO","referencia":null,"fecha_creacion":"2026-09-08T09:05:00"} |
 | **Código HTTP exitoso** | 201 Created |
 | **Códigos de error** | 400,401,404,409,422 |
 | Errores de negocio | PAYMENT_AMOUNT_MISMATCH, RESERVATION_NOT_IN_PROCESS, BLOCK_EXPIRED. |
 | **Caso de uso relacionado** | CU-39 |
-| **Regla de negocio relacionada** | RN-73 a RN-82 |
+| **Regla de negocio relacionada** | RN-73 a RN-82, RN-104, RN-107 |
 | **DTO de entrada** | CreatePaymentRequest |
 | **DTO de salida** | PaymentResponse |
 
@@ -1237,7 +1258,7 @@ Se documentan 66 endpoints agrupados en los 14 módulos solicitados. La nomencla
 | **Método HTTP** | POST |
 | **Ruta** | /api/v1/refunds |
 | **Actor autorizado** | AG/RC/SYS |
-| **Descripción** | Crear/procesar una devolución total o parcial derivada de una cancelación. |
+| **Descripción** | Crear/procesar una devolución total o parcial derivada de una cancelación, aplicando la política de devolución aprobada por tramos de anticipación (DP-OP-11/DP-OP-12, RN-101 a RN-103): 100% con 24 h o más, 50% entre 6 h y menos de 24 h, sin devolución con menos de 6 h, y 100% cuando la cancelación es atribuible al spa. |
 | **Parámetros** | Sin parámetros de ruta. |
 | **Request** | {"id_pago":3001,"id_reservacion":9001,"id_reservacion_tratamiento":9101,"monto":400,"motivo":"Cancelación de tratamiento","tipo_devolucion":"PARCIAL"} |
 | **Response** | {"id_devolucion":5001,"id_pago":3001,"id_reservacion":9001,"id_reservacion_tratamiento":9101,"tipo_devolucion":"PARCIAL","monto":400,"estado_devolucion":"PENDIENTE","fecha_solicitud":"2026-09-08T10:00:00"} |
@@ -1245,7 +1266,7 @@ Se documentan 66 endpoints agrupados en los 14 módulos solicitados. La nomencla
 | **Códigos de error** | 400,401,403,404,409,422 |
 | Errores de negocio | PAYMENT_NOT_FOUND, REFUND_EXCEEDS_PAYMENT, REFUND_ALREADY_COMPLETED. |
 | **Caso de uso relacionado** | CU-43 |
-| **Regla de negocio relacionada** | RN-83 a RN-87 |
+| **Regla de negocio relacionada** | RN-83 a RN-87, RN-101 a RN-103 |
 | **DTO de entrada** | CreateRefundRequest |
 | **DTO de salida** | RefundResponse |
 
@@ -1411,7 +1432,9 @@ Los DTO separan el contrato HTTP de las entidades de persistencia. No se recomie
 |----|----|
 | **RegisterRequest** | nombre: TEXT; correo: TEXT; telefono: TEXT; password: TEXT — Entrada de registro. La contraseña solo se procesa para generar un hash. |
 | **LoginRequest** | correo: TEXT; password: TEXT — Credenciales de acceso. |
-| **LoginResponse** | accessToken: TEXT; usuario: UserResponse — Resultado de autenticación. |
+| **LoginResponse** | accessToken: TEXT (JWT); refreshToken: TEXT; usuario: UserResponse — Resultado de autenticación mediante ASP.NET Core Identity (DP-TEC-01, RN-106). |
+| **RefreshTokenRequest** | refreshToken: TEXT — Refresh token válido utilizado para solicitar la renovación segura de la sesión. |
+| **RefreshTokenResponse** | accessToken: TEXT (JWT); refreshToken: TEXT — Nuevo access token y refresh token renovado cuando aplique. |
 | **UserResponse** | id_usuario: INT; nombre: TEXT; correo: TEXT; telefono: TEXT; rol: TEXT; activo: BIT — Representación pública del usuario. |
 | **ChangeUserRoleRequest** | id_rol: INT — Cambio de rol por AG. |
 | **ChangeUserStatusRequest** | activo: BIT — Activación/desactivación. |
@@ -1525,7 +1548,7 @@ Cabina recomendada y alternativas. Cada opción puede incluir razones de compati
 | **Caso de uso** | **Endpoint(s) principal(es)** | **Cobertura** |
 |----|----|----|
 | **CU-01** | /auth/register | Registro |
-| **CU-02** | /auth/login, /auth/logout, /auth/me | Autenticación |
+| **CU-02** | /auth/login, /auth/logout, /auth/me, /auth/refresh | Autenticación y renovación segura de sesión |
 | **CU-03/CU-04** | /treatments | Catálogo y detalle |
 | **CU-05/CU-06** | /cart | Carrito |
 | **CU-07/CU-08** | /recommendations, /cabins | Recomendación y selección |
@@ -1552,11 +1575,11 @@ Cabina recomendada y alternativas. Cada opción puede incluir razones de compati
 | **CU-42** | /payments/manual | Pago manual |
 | **CU-43** | POST /refunds, GET /refunds/{id}, GET /payments/{id}/refunds | Registro y consulta de devolución |
 
-# 12. Decisiones pendientes antes de implementación física
+# 12. Decisiones aprobadas antes de implementación física
 
-El uso del estado PENDIENTE en ReservacionTratamiento ya no es una decisión pendiente: el Diccionario de Datos TZISCA (versión corregida y cerrada) resuelve su ciclo formal (EN_PROCESO/PENDIENTE → CONFIRMADA/CONFIRMADO) y esta API lo implementa mediante POST /reservations y POST /reservations/{id}/confirm. Permanecen pendientes de aprobación, sin que esta API invente sus valores: DP-EC-01 (fórmula del importe), DP-EC-02 (pago aprobado con disponibilidad perdida, ver PAYMENT_APPROVED_AVAILABILITY_LOST), DP-OP-01 a DP-OP-13 (horario de apertura y cierre, días laborables/no laborables, excepciones, intervalos de agenda, anticipación mínima y máxima, duración del bloqueo temporal, y tolerancias/políticas de cancelación y devolución) y DP-TEC-01 (mecanismo de autenticación). Esta API no fija ninguno de esos valores ni fuerza una transición adicional de estado; deberán validarse antes del esquema físico definitivo.
+El uso del estado PENDIENTE en ReservacionTratamiento ya no es una decisión pendiente: el Diccionario de Datos TZISCA (versión corregida y cerrada) resuelve su ciclo formal (EN_PROCESO/PENDIENTE → CONFIRMADA/CONFIRMADO) y esta API lo implementa mediante POST /reservations y POST /reservations/{id}/confirm. El documento *Decisiones Aprobadas TZISCA* cerró formalmente las demás decisiones pendientes, sin que esta API haya necesitado inventar sus valores: DP-EC-01 (fórmula del importe: precio por persona, importe = precio_unitario × numero_personas, RN-104), DP-EC-02 (pago aprobado con disponibilidad perdida, ver PAYMENT_APPROVED_AVAILABILITY_LOST y RN-105), DP-OP-01 a DP-OP-13 (apertura 09:00, cierre 20:00, días laborales lunes a sábado, domingo no laboral con excepciones operativas, intervalos de 30 minutos, anticipación mínima de 2 horas y máxima de 60 días, bloqueo temporal de 15 minutos, tolerancia de 15 minutos y políticas de cancelación/devolución por tramos de anticipación, RN-91 a RN-103) y DP-TEC-01 (ASP.NET Core Identity + JWT, RN-106). Esta API refleja esos valores aprobados sin fijar configuraciones ni secretos reales.
 
-Asimismo, la pasarela de pago permanece abstracta (DP-TEC-02, pendiente de aprobación). /payments representa el contrato interno de TZISCA mediante un PaymentService abstracto; la implementación futura podrá conectar un mecanismo externo, pero no se fija Stripe, Mercado Pago, PayPal ni otro proveedor en este documento hasta que DP-TEC-02 se cierre.
+Asimismo, la pasarela de pago deja de ser abstracta sin proveedor: DP-TEC-02 (RN-107) aprobó a Stripe como pasarela inicial. /payments representa el contrato interno de TZISCA mediante PaymentService, la abstracción que integrará Stripe sin acoplar la lógica de negocio al proveedor externo; esta versión documental no implementa la integración ni agrega claves o secretos. El algoritmo de recomendación de /recommendations queda regido por DP-TEC-03 (RN-108): determinista y reproducible mediante compatibilidad, capacidad, estado, disponibilidad, preferencias, especialización, prioridad configurada e id_cabina ascendente como desempate final.
 
 # 13. Fuentes documentales utilizadas
 
@@ -1566,16 +1589,18 @@ Asimismo, la pasarela de pago permanece abstracta (DP-TEC-02, pendiente de aprob
 
 - TZISCA — Casos de Uso CU-01 a CU-43.
 
-- TZISCA — Reglas de Negocio actualizadas RN-01 a RN-90.
+- TZISCA — Reglas de Negocio actualizadas RN-01 a RN-108.
 
 - TZISCA — Criterios de Aceptación CU-01 a CU-43.
 
 - TZISCA — Diccionario de Datos TZISCA Pagos.
 
+- TZISCA — Decisiones Aprobadas TZISCA (cierre de DP-OP-01 a DP-OP-13, DP-EC-01 a DP-EC-02 y DP-TEC-01 a DP-TEC-03).
+
 # 14. Cierre del documento
 
-Estado del documento: CERRADO. Esta versión corregida cierra el Diseño de API REST TZISCA v1 conforme a las 17 instrucciones de corrección solicitadas el 08/09/2026, trabajando sobre la versión vigente del documento: no se creó una API nueva desde cero, y se mantuvieron /api/v1, REST, JSON, Angular, ASP.NET Core, SQL Server, CU-01 a CU-43 y RN-01 a RN-90.
+Estado del documento: CERRADO. Esta versión corregida cierra el Diseño de API REST TZISCA v1 conforme a las 17 instrucciones de corrección solicitadas el 08/09/2026, trabajando sobre la versión vigente del documento: no se creó una API nueva desde cero, y se mantuvieron /api/v1, REST, JSON, Angular, ASP.NET Core, SQL Server, CU-01 a CU-43 y RN-01 a RN-90. El 09/09/2026 se actualizó para incorporar las decisiones aprobadas (RN-91 a RN-108) y AUTH-05, quedando 67 endpoints documentados, sin reabrir el resto del documento ni agregar claves, secretos o la implementación real de Stripe.
 
-Las decisiones que siguen pendientes de aprobación (DP-EC-01, DP-EC-02, DP-OP-01 a DP-OP-13, DP-TEC-01, DP-TEC-02, DP-TEC-03) permanecen documentadas como tales: esta API no fija valores operativos, económicos, de autenticación ni de pasarela de pago que aún no hayan sido aprobados.
+Las decisiones DP-EC-01, DP-EC-02, DP-OP-01 a DP-OP-13, DP-TEC-01, DP-TEC-02 y DP-TEC-03 quedaron formalmente aprobadas mediante *Decisiones Aprobadas TZISCA*: esta API refleja esos valores operativos, económicos, de autenticación y de pasarela de pago exactamente como fueron aprobados.
 
 Con este cierre, el documento queda listo para utilizarse como contrato de implementación de ASP.NET Core y Angular.

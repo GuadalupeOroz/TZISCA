@@ -124,7 +124,7 @@ El cliente podrá agregar uno o varios tratamientos a un carrito antes de confir
 
 ## 5.12 Bloqueo temporal
 
-Al seleccionar una cabina, fecha y hora válidas, el sistema aplicará un bloqueo temporal que protege el recurso mientras el cliente completa el carrito y, en su caso, el pago. El bloqueo se libera automáticamente si expira, si el cliente cambia su selección o si abandona el carrito. La duración del bloqueo se maneja como un parámetro operativo configurable, no como un valor fijo en el código (pendiente de aprobación, sección 14).
+Al seleccionar una cabina, fecha y hora válidas, el sistema aplicará un bloqueo temporal que protege el recurso mientras el cliente completa el carrito y, en su caso, el pago. El bloqueo se libera automáticamente si expira, si el cliente cambia su selección o si abandona el carrito. La duración del bloqueo se maneja como un parámetro operativo configurable, no como un valor fijo en el código; el valor aprobado es de 15 minutos (DP-OP-08, RN-98, ver sección 14).
 
 ## 5.13 Pagos
 
@@ -292,7 +292,7 @@ Base de datos - SQL Server. Almacenará usuarios, roles, tratamientos, cabinas, 
 
 La arquitectura general será cliente-servidor: **Angular → API REST desarrollada en ASP.NET Core → SQL Server**. El backend expone la API REST v1 (prefijo /api/v1) documentada en Diseño de API REST TZISCA, y accede a SQL Server según el Diccionario de Datos y Modelo Lógico TZISCA. Esta separación permite organizar la presentación, las reglas de negocio y la persistencia de datos en componentes diferenciados.
 
-La pasarela de pago concreta a integrar permanece pendiente de definición (DP-TEC-02); mientras no se apruebe, el módulo de pagos maneja los estados definidos (PENDIENTE, PROCESANDO, PAGADO, FALLIDO, CANCELADO, REEMBOLSADO, REEMBOLSADO_PARCIALMENTE) sin depender de un proveedor específico. Los parámetros operativos de horario, duración del bloqueo temporal y políticas de devolución también permanecen sujetos a aprobación (ver sección 14).
+La pasarela de pago fue aprobada: Stripe será el proveedor inicial, integrado detrás de una abstracción PaymentService para no acoplar la lógica de negocio al proveedor externo (DP-TEC-02, RN-107). El módulo de pagos maneja los estados definidos (PENDIENTE, PROCESANDO, PAGADO, FALLIDO, CANCELADO, REEMBOLSADO, REEMBOLSADO_PARCIALMENTE). Los parámetros operativos de horario, duración del bloqueo temporal y políticas de devolución también quedaron aprobados (ver sección 14).
 
 # 10. Metodología de desarrollo
 
@@ -346,7 +346,7 @@ Los 43 casos de uso documentados (CU-01 a CU-43) representan el alcance funciona
 
 # 12. Entidades de información
 
-El diseño detallado de entidades, atributos, llaves y relaciones se documenta en el Diccionario de Datos y Modelo Lógico TZISCA, que sustituye la lista preliminar de la versión anterior de esta propuesta. Dicho documento define 23 entidades confirmadas (Rol, Usuario, PreferenciaCliente, TipoCabina, Cabina, Tratamiento, TratamientoCabina, Proveedor, ProveedorTratamiento, Carrito, CarritoTratamiento, BloqueoTemporal, Reservacion, ReservacionTratamiento, AsignacionProveedor, BloqueoCabina, HistorialEstadoCabina, IndisponibilidadProveedor, HistorialEstadoTratamiento, Cancelacion, Pago, Devolucion) más TransaccionPago como entidad opcional, aplicable únicamente si se integra una pasarela de pago externa. También documenta, como propuesta pendiente de aprobación de valores, las entidades operativas de agenda (ParametroOperativo, DiaLaborable, ExcepcionOperativa).
+El diseño detallado de entidades, atributos, llaves y relaciones se documenta en el Diccionario de Datos y Modelo Lógico TZISCA, que sustituye la lista preliminar de la versión anterior de esta propuesta. Dicho documento define 25 entidades obligatorias (Rol, Usuario, PreferenciaCliente, TipoCabina, Cabina, Tratamiento, TratamientoCabina, Proveedor, ProveedorTratamiento, Carrito, CarritoTratamiento, BloqueoTemporal, Reservacion, ReservacionTratamiento, AsignacionProveedor, BloqueoCabina, HistorialEstadoCabina, IndisponibilidadProveedor, HistorialEstadoTratamiento, Cancelacion, Pago, Devolucion, ParametroOperativo, DiaLaborable, ExcepcionOperativa) más TransaccionPago como entidad opcional, aplicable únicamente cuando se implemente la integración con Stripe, para un total de 26 entidades. Las tres entidades operativas de agenda (ParametroOperativo, DiaLaborable, ExcepcionOperativa) se incorporaron al conteo confirmado porque sus valores fueron aprobados mediante *Decisiones Aprobadas TZISCA* (DP-OP-01 a DP-OP-08, RN-91 a RN-98).
 
 # 13. Resultado esperado
 
@@ -358,20 +358,10 @@ El resultado incluye además el ciclo completo de pago, cancelación y devoluci�
 
 # 14. Aspectos por validar con el responsable del proyecto
 
-Los siguientes puntos ya resueltos en la versión anterior de esta propuesta —nombre del proyecto, catálogo inicial de tratamientos y cabinas, criterios de prioridad para la preasignación y forma de asignar al proveedor— quedan documentados en el Catálogo de Cabinas TZISCA, en Reglas de Negocio Horario y Políticas TZISCA (RN-17 a RN-21, RN-46 a RN-56) y en el Diccionario de Datos y Modelo Lógico TZISCA, por lo que se retiran de esta lista. Permanecen pendientes de aprobación:
+Los siguientes puntos ya resueltos en la versión anterior de esta propuesta —nombre del proyecto, catálogo inicial de tratamientos y cabinas, criterios de prioridad para la preasignación y forma de asignar al proveedor— quedan documentados en el Catálogo de Cabinas TZISCA, en Reglas de Negocio Horario y Políticas TZISCA (RN-17 a RN-21, RN-46 a RN-56) y en el Diccionario de Datos y Modelo Lógico TZISCA, por lo que se retiran de esta lista.
 
-- Horarios de apertura y cierre, días laborables, excepciones/días no laborables, intervalo de agenda, anticipación mínima y máxima para reservar, y duración del bloqueo temporal (DP-OP-01 a DP-OP-08).
+Las decisiones operativas, económicas y técnicas que antes aparecían aquí como pendientes de aprobación —horarios de apertura y cierre, días laborables, excepciones, intervalo de agenda, anticipación mínima y máxima, duración del bloqueo temporal, tolerancia, política de cancelación, condiciones de devolución (DP-OP-01 a DP-OP-13); fórmula del importe y tratamiento económico de pago aprobado con disponibilidad perdida (DP-EC-01, DP-EC-02); y mecanismo de autenticación, pasarela de pago y algoritmo de recomendación (DP-TEC-01 a DP-TEC-03)— quedaron formalmente **aprobadas** mediante el documento *Decisiones Aprobadas TZISCA* y se incorporaron como reglas de negocio RN-91 a RN-108. El detalle de cada valor se encuentra en Reglas de Negocio Horario y Políticas TZISCA (sección 17 y 18) y ya puede utilizarse para implementación.
 
-- Política de tolerancia ante llegada tardía, política de cancelación, condiciones de devolución (total, parcial o ninguna) y tiempo límite para cancelar con derecho a devolución (DP-OP-09 a DP-OP-13).
-
-- Fórmula exacta del importe por tratamiento: si precio_base corresponde al tratamiento completo o es por persona, y si existen cargos adicionales (DP-EC-01).
-
-- Tratamiento económico cuando un pago fue aprobado pero el bloqueo temporal expiró y la disponibilidad se perdió (DP-EC-02).
-
-- Mecanismo concreto de autenticación y gestión de sesión (DP-TEC-01).
-
-- Proveedor o pasarela de pago concreta a integrar (DP-TEC-02).
-
-- Algoritmo determinista de recomendación de cabinas, con sus criterios de desempate (DP-TEC-03).
+Permanece pendiente el siguiente aspecto real, no incluido en *Decisiones Aprobadas TZISCA*:
 
 - Necesidad de notificaciones y recordatorios, no contemplados en el alcance funcional actual.

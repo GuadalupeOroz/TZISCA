@@ -52,15 +52,26 @@ Será responsable de:
 
 - Exponer la API REST.
 - Aplicar reglas de negocio.
-- Gestionar autenticación y autorización.
-- Validar disponibilidad.
+- Gestionar autenticación y autorización mediante ASP.NET Core Identity, emitiendo JWT como access token y un refresh token seguro para renovación de sesión, con autorización por rol y permisos (DP-TEC-01, RN-106).
+- Validar disponibilidad mediante AvailabilityService, con los parámetros operativos aprobados (horario, días laborables, intervalos, anticipación y bloqueo temporal).
 - Administrar bloqueos temporales.
 - Gestionar reservaciones.
-- Gestionar proveedores y asignaciones.
-- Gestionar pagos y devoluciones.
+- Gestionar proveedores y asignaciones, incluyendo la recomendación determinista de cabinas mediante RecommendationService (DP-TEC-03, RN-108).
+- Gestionar pagos mediante PaymentService, la abstracción interna que integra Stripe como pasarela inicial aprobada sin acoplar la lógica de negocio al proveedor externo (DP-TEC-02, RN-107).
+- Gestionar devoluciones mediante RefundService, aplicando las políticas de cancelación y devolución aprobadas (DP-OP-09 a DP-OP-13, RN-99 a RN-103).
 - Mantener trazabilidad.
 - Acceder a la base de datos.
 
+### Servicios internos del backend (decisiones aprobadas)
+
+Conforme a *Decisiones Aprobadas TZISCA*, el backend organiza la lógica crítica en los siguientes servicios internos. Esta sección es documental: no convierte estos servicios en código todavía.
+
+- **ASP.NET Core Identity** — gestión de usuarios y credenciales (DP-TEC-01).
+- **JWT** — access token emitido tras la autenticación, con refresh token seguro para renovación de sesión (DP-TEC-01, RN-106).
+- **AvailabilityService** — cálculo de disponibilidad con los parámetros operativos aprobados: apertura 09:00, cierre 20:00, días laborables lunes a sábado, domingo no laboral con excepciones operativas, intervalos de 30 minutos, anticipación mínima de 2 horas y máxima de 60 días, y bloqueo temporal de 15 minutos (DP-OP-01 a DP-OP-08, RN-91 a RN-98).
+- **RefundService** — determinación de devoluciones conforme a la política aprobada de tolerancia, cancelación y devolución (DP-OP-09 a DP-OP-13, RN-99 a RN-103).
+- **PaymentService** — abstracción interna de pagos que integra **Stripe** como pasarela inicial aprobada, sin acoplar la lógica de negocio al proveedor externo (DP-TEC-02, RN-107).
+- **RecommendationService** — algoritmo determinista de recomendación de cabinas (DP-TEC-03, RN-108).
 
 ---
 
@@ -182,27 +193,31 @@ El backend deberá considerar:
 - Periodos fuera de servicio.
 - Parámetros operativos aprobados.
 
-Los valores de horario de apertura, cierre, días laborables, anticipación mínima y máxima y duración del bloqueo temporal deberán manejarse como configuración y no como valores asumidos en código.
+AvailabilityService deberá usar los valores aprobados de horario de apertura (09:00), cierre (20:00), días laborables (lunes a sábado, domingo no laboral con excepciones operativas), intervalos de agenda (30 minutos), anticipación mínima (2 horas), anticipación máxima (60 días) y duración del bloqueo temporal (15 minutos) como configuración (DP-OP-01 a DP-OP-08, RN-91 a RN-98), y no como valores fijos asumidos directamente en el código.
 
 ---
 
 ## Pagos
 
-Los pagos se gestionarán de forma separada de la reservación.
+Los pagos se gestionarán de forma separada de la reservación, a través de PaymentService.
 
 Una reservación podrá relacionarse con uno o más registros de pago para conservar intentos, estados, referencias, fechas, métodos de pago y trazabilidad.
 
-La confirmación definitiva de una reservación que requiera pago dependerá de que el pago correspondiente haya sido aprobado.
+La confirmación definitiva de una reservación que requiera pago dependerá de que el pago correspondiente haya sido aprobado. El importe se calcula conforme a la fórmula aprobada (DP-EC-01, RN-104): precio_base por persona, importe = precio_unitario × numero_personas.
+
+Stripe es la pasarela inicial aprobada (DP-TEC-02, RN-107) y se integrará detrás de PaymentService, sin acoplar la lógica de negocio al proveedor externo. Pago conserva el estado financiero interno de TZISCA; TransaccionPago registra la interacción técnica con Stripe cuando se implemente. Esta arquitectura es documental y no implementa la integración con Stripe todavía.
 
 TZISCA no deberá almacenar datos bancarios sensibles completos.
+
+Si un pago queda `PAGADO` pero la revalidación de disponibilidad detecta que se perdió, la Reservacion no se confirma y permanece `EN_PROCESO` conforme a DP-EC-02 (RN-105): el Cliente puede seleccionar otra cabina u horario, conservar los tratamientos válidos con devolución parcial del afectado, o cancelar la operación con devolución total.
 
 ---
 
 ## Devoluciones
 
-Las devoluciones se manejarán como operaciones independientes relacionadas con un pago.
+Las devoluciones se manejarán como operaciones independientes relacionadas con un pago, a través de RefundService.
 
-La lógica de devolución deberá consultar las políticas aprobadas antes de determinar si corresponde un reembolso y cuál será el importe.
+La lógica de devolución deberá consultar la política de devolución aprobada por tramos de anticipación antes de determinar si corresponde un reembolso y cuál será el importe (DP-OP-11/DP-OP-12, RN-101 a RN-103): 100% con 24 horas o más de anticipación, 50% entre 6 y menos de 24 horas, sin devolución con menos de 6 horas, y 100% cuando la cancelación es atribuible al spa. No hay devolución por inasistencia, servicio iniciado o servicio completado.
 
 ---
 
@@ -267,39 +282,37 @@ Un pago `FALLIDO`, `CANCELADO` o rechazado no deberá producir la confirmación 
 
 ---
 
-## Decisiones pendientes antes de cerrar la implementación
+## Decisiones aprobadas
 
-Existen parámetros funcionales, económicos y técnicos que todavía no deben fijarse como constantes en el código.
+Los parámetros funcionales, económicos y técnicos que antes estaban pendientes fueron aprobados mediante *Decisiones Aprobadas TZISCA* y se convirtieron en las reglas de negocio RN-91 a RN-108. Deben implementarse como configuración (AvailabilityService, RefundService) y no como constantes dispersas en el código.
 
-### Parámetros operativos pendientes
+### Parámetros operativos aprobados
 
-- Hora de apertura.
-- Hora de cierre.
-- Días laborales.
-- Días no laborales.
-- Duración de intervalos de agenda.
-- Anticipación mínima para reservar.
-- Anticipación máxima para reservar.
-- Duración del bloqueo temporal.
-- Política de tolerancia.
-- Política de cancelación.
-- Condiciones de devolución.
-- Tiempo límite para cancelar con devolución.
-- Casos sin derecho a devolución.
+- Hora de apertura: 09:00.
+- Hora de cierre: 20:00; ningún tratamiento debe finalizar después de esa hora.
+- Días laborales: lunes a sábado.
+- Días no laborales: domingo; festivos, cierres extraordinarios y horarios especiales se gestionan mediante excepciones operativas.
+- Duración de intervalos de agenda: 30 minutos.
+- Anticipación mínima para reservar: 2 horas.
+- Anticipación máxima para reservar: 60 días.
+- Duración del bloqueo temporal: 15 minutos.
+- Política de tolerancia: 15 minutos; superado ese margen, Recepción evalúa si el servicio aún puede realizarse.
+- Política de cancelación: el Cliente cancela antes del inicio; Administrador general y Recepción y cabinas cancelan por causas operativas registrando motivo y responsable.
+- Condiciones de devolución: 100% con 24 horas o más de anticipación, 50% entre 6 y menos de 24 horas, sin devolución con menos de 6 horas; 100% si la cancelación es atribuible al spa.
+- Casos sin derecho a devolución: inasistencia, cancelación con menos de 6 horas, servicio iniciado o servicio completado.
 
-### Decisiones económicas pendientes
+### Decisiones económicas aprobadas
 
-- Fórmula del importe de un tratamiento.
-- Definir si `precio_base` corresponde por servicio o por persona.
-- Definir si el importe depende del número de personas.
-- Definir posibles cargos adicionales.
-- Definir el tratamiento económico cuando exista pago aprobado pero se pierda la disponibilidad.
+- Fórmula del importe de un tratamiento: `precio_base` es precio por persona.
+- El importe depende del número de personas: `importe = precio_unitario × numero_personas`.
+- El total de la reservación es la suma de los importes de sus tratamientos; el MVP no aplica cargos adicionales.
+- Pago aprobado con disponibilidad perdida: la Reservacion no se confirma y permanece `EN_PROCESO`; el Cliente elige entre otra cabina/horario, devolución parcial del tratamiento afectado o cancelación con devolución total, sin que TZISCA presuma ninguna acción automáticamente.
 
-### Decisiones técnicas pendientes
+### Decisiones técnicas aprobadas
 
-- Mecanismo concreto de autenticación.
-- Pasarela o proveedor de pago.
-- Algoritmo determinista de recomendación de cabinas.
+- Mecanismo de autenticación: ASP.NET Core Identity + JWT, con refresh token seguro y autorización por rol y permisos.
+- Pasarela de pago: Stripe, integrada detrás de PaymentService.
+- Algoritmo determinista de recomendación de cabinas: compatibilidad, capacidad, estado operativo, disponibilidad, preferencias, especialización, prioridad configurada e id_cabina ascendente como desempate final.
 
-Estas decisiones deberán permanecer como configuración o definición pendiente hasta contar con aprobación formal.
+Estas decisiones ya pueden utilizarse para la implementación de AvailabilityService, RefundService, PaymentService, la autenticación y RecommendationService.
 

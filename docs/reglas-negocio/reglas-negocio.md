@@ -80,7 +80,7 @@ RN-23. Cada tratamiento del carrito será administrado como un elemento independ
 
 **RN-30.** Cuando un cliente seleccione una cabina, fecha y hora válidas, TZISCA realizará un bloqueo temporal.
 
-**RN-31.** La duración del bloqueo temporal deberá manejarse como un parámetro operativo configurable. El valor inicial queda pendiente de validación y aprobación por el responsable del proyecto antes de su implementación.
+**RN-31.** La duración del bloqueo temporal deberá manejarse como un parámetro operativo configurable (ParametroOperativo.duracion_bloqueo_minutos). El valor aprobado es de 15 minutos, conforme a DP-OP-08 (ver RN-98).
 
 **RN-32.** Mientras exista el bloqueo temporal, el recurso no podrá ofrecerse a otro cliente si genera conflicto.
 
@@ -184,7 +184,7 @@ RN-60. Cuando se cancele un tratamiento, TZISCA deberá liberar automáticamente
 
 RN-73. Todo Pago deberá estar relacionado con una Reservacion. Cuando el pago sea previo a la confirmación definitiva, la Reservacion relacionada deberá permanecer en estado EN_PROCESO y sus ReservacionTratamiento en estado PENDIENTE.
 
-RN-74. El sistema deberá calcular y mostrar el importe correspondiente antes de iniciar el proceso de pago. La fórmula de cálculo queda pendiente de aprobación conforme a DP-EC-01.
+RN-74. El sistema deberá calcular y mostrar el importe correspondiente antes de iniciar el proceso de pago, conforme a la fórmula aprobada en DP-EC-01 (ver RN-104).
 
 RN-75. Una Reservacion que requiera pago no deberá considerarse definitivamente confirmada hasta que el pago haya sido aprobado y la revalidación de disponibilidad resulte satisfactoria. Solo entonces sus ReservacionTratamiento podrán pasar de PENDIENTE a CONFIRMADO.
 
@@ -198,7 +198,7 @@ RN-79. Cuando una operación de pago falle o sea rechazada por el mecanismo exte
 
 RN-80. El Cliente podrá reintentar un Pago en estado FALLIDO mientras la operación y el bloqueo temporal continúen vigentes.
 
-RN-81. El sistema deberá volver a validar la disponibilidad si el bloqueo temporal expira antes de completar la confirmación. Si el pago ya fue aprobado y la disponibilidad se perdió, la Reservacion no deberá confirmarse y el tratamiento económico quedará sujeto a DP-EC-02.
+RN-81. El sistema deberá volver a validar la disponibilidad si el bloqueo temporal expira antes de completar la confirmación. Si el pago ya fue aprobado y la disponibilidad se perdió, la Reservacion no deberá confirmarse y permanecerá EN_PROCESO conforme al tratamiento económico aprobado en DP-EC-02 (ver RN-105).
 
 RN-82. TZISCA no deberá almacenar datos bancarios sensibles completos como número completo de tarjeta o CVV.
 
@@ -218,109 +218,132 @@ RN-89. El Administrador general podrá consultar información de pagos según su
 
 RN-90. Recepción y cabinas podrá consultar el estado del pago de las reservaciones que gestione.
 
-# 17. Horario operativo y políticas de reservación
+# 17. Reglas derivadas de las decisiones aprobadas (RN-91 a RN-108)
 
-Esta sección consolida los parámetros operativos y las políticas que todavía deben ser validados por el responsable del proyecto o por la empresa antes de su implementación definitiva. Mientras no exista aprobación formal, TZISCA no deberá asumir valores por defecto ni incorporar constantes en código para estos puntos. Las decisiones deberán quedar definidas antes de cerrar la lógica de AvailabilityService y RefundService.
+Estas reglas incorporan al cuerpo normativo de TZISCA las decisiones operativas, económicas y técnicas aprobadas mediante el documento *Decisiones Aprobadas TZISCA*. Sustituyen el estado de pendiente que tenían DP-OP-01 a DP-OP-13, DP-EC-01 a DP-EC-02 y DP-TEC-01 a DP-TEC-03 (sección 18) y ya pueden utilizarse para implementación.
 
-Estas decisiones no se numeran todavía como nuevas reglas de negocio RN-91 en adelante, porque aún no contienen valores ni condiciones aprobadas. Una vez validadas, deberán convertirse en reglas verificables y reflejarse de forma consistente en casos de uso, criterios de aceptación, modelo de datos, API y pruebas.
+**RN-91.** El horario general de apertura de TZISCA será a las 09:00.
 
-## 17.1. Decisiones pendientes de validación
+**RN-92.** El horario general de cierre será a las 20:00 y ningún tratamiento deberá finalizar después de esa hora.
 
-**DP-OP-01 — Hora de apertura.** Definir la hora oficial a partir de la cual podrán ofrecerse horarios reservables. *Impacto principal: AvailabilityService. Estado: Pendiente de aprobación.*
+**RN-93.** Los días laborales regulares serán de lunes a sábado; el domingo será no laboral.
 
-**DP-OP-02 — Hora de cierre.** Definir la hora límite de operación y establecer si un tratamiento debe finalizar antes o exactamente al cierre. *Impacto principal: AvailabilityService. Estado: Pendiente de aprobación.*
+**RN-94.** Los festivos, cierres extraordinarios y horarios especiales deberán registrarse como excepciones operativas y prevalecerán sobre el calendario regular.
 
-**DP-OP-03 — Días laborales.** Definir qué días de la semana forman parte de la operación regular del spa. *Impacto principal: AvailabilityService. Estado: Pendiente de aprobación.*
+**RN-95.** Los horarios de inicio ofrecidos por la agenda se generarán en intervalos de 30 minutos, sin modificar la duración real de cada tratamiento.
 
-**DP-OP-04 — Días no laborales.** Definir los días en los que no se deberán ofrecer reservaciones y el mecanismo para registrar cierres o excepciones operativas. *Impacto principal: AvailabilityService. Estado: Pendiente de aprobación.*
+**RN-96.** Una reservación deberá realizarse con al menos 2 horas de anticipación respecto del inicio del servicio.
 
-**DP-OP-05 — Duración de intervalos de agenda.** Definir la granularidad con la que se generarán o mostrarán los horarios disponibles para iniciar un tratamiento. *Impacto principal: AvailabilityService. Estado: Pendiente de aprobación.*
+**RN-97.** El Cliente podrá reservar como máximo con 60 días de anticipación.
 
-**DP-OP-06 — Anticipación mínima para reservar.** Definir cuánto tiempo antes del inicio del servicio debe realizarse una reservación. *Impacto principal: AvailabilityService. Estado: Pendiente de aprobación.*
+**RN-98.** Todo bloqueo temporal tendrá una vigencia de 15 minutos; al expirar deberá liberarse o revalidarse según el flujo vigente.
 
-**DP-OP-07 — Anticipación máxima para reservar.** Definir hasta qué fecha futura podrá reservar un cliente. *Impacto principal: AvailabilityService. Estado: Pendiente de aprobación.*
+**RN-99.** La tolerancia por llegada tardía será de 15 minutos; superado ese margen, Recepción determinará si el servicio puede realizarse sin afectar la agenda y, de no ser posible, se aplicará la política de inasistencia.
 
-**DP-OP-08 — Tiempo de duración del bloqueo temporal.** Definir la vigencia exacta de un bloqueo temporal durante selección, confirmación y pago. *Impacto principal: AvailabilityService / flujo de pago. Estado: Pendiente de aprobación.*
+**RN-100.** Las cancelaciones podrán realizarse antes del inicio por el Cliente; Administrador general y Recepción y cabinas podrán cancelar por causas operativas registrando motivo y responsable.
 
-**DP-OP-09 — Política de tolerancia.** Definir el margen permitido ante llegada tardía y las consecuencias operativas aplicables al servicio y a la reservación. *Impacto principal: Reservaciones / operación. Estado: Pendiente de aprobación.*
+**RN-101.** Una cancelación con 24 horas o más de anticipación dará derecho a devolución del 100%; entre 6 y menos de 24 horas, al 50%; con menos de 6 horas, no habrá devolución.
 
-**DP-OP-10 — Política de cancelación.** Definir las condiciones bajo las cuales un cliente, Recepción y cabinas o el Administrador general pueden cancelar un tratamiento o una reservación. *Impacto principal: RefundService / Reservaciones. Estado: Pendiente de aprobación.*
+**RN-102.** Las cancelaciones por causa operativa atribuible al spa darán derecho a devolución del 100% del importe afectado.
 
-**DP-OP-11 — Condiciones de devolución.** Definir cuándo una cancelación genera devolución total, parcial o ninguna devolución, así como los criterios que determinan el importe elegible. *Impacto principal: RefundService. Estado: Pendiente de aprobación.*
+**RN-103.** No habrá devolución por inasistencia, cancelación con menos de 6 horas, servicio ya iniciado o servicio completado.
 
-**DP-OP-12 — Tiempo límite para cancelar con devolución.** Definir la anticipación requerida respecto al inicio del servicio para que una cancelación conserve derecho a devolución. *Impacto principal: RefundService. Estado: Pendiente de aprobación.*
+**RN-104.** El precio_base de Tratamiento se interpretará como precio por persona; el importe de cada ReservacionTratamiento será precio_unitario × numero_personas y el total será la suma de sus importes. El MVP no aplicará cargos adicionales.
 
-**DP-OP-13 — Casos sin derecho a devolución.** Definir las situaciones en las que una cancelación no genera devolución y cómo deberán registrarse para trazabilidad. *Impacto principal: RefundService. Estado: Pendiente de aprobación.*
+**RN-105.** Si existe Pago PAGADO y la disponibilidad se pierde antes de confirmar, la Reservacion no deberá confirmarse y permanecerá EN_PROCESO hasta resolver el conflicto mediante alternativa, devolución parcial o cancelación con devolución total.
 
-## 17.2. Decisiones económicas pendientes
+**RN-106.** La autenticación se implementará con ASP.NET Core Identity y JWT, utilizando autorización por rol y renovación segura de sesión.
 
-DP-EC-01 — Fórmula del importe de tratamiento. Definir la fórmula antes de implementar el cálculo o confirmar importes. Estado: Pendiente de aprobación.
+**RN-107.** Stripe será la pasarela inicial de pago y deberá integrarse mediante PaymentService desacoplado de la lógica de negocio.
 
-- Determinar si precio_base corresponde al tratamiento completo.
+**RN-108.** La recomendación de cabinas deberá ser determinista y reproducible, aplicando compatibilidad, capacidad, estado, disponibilidad, preferencias, especialización, prioridad configurada e id_cabina como desempate final.
 
-- Determinar si precio_base corresponde por persona.
+# 18. Decisiones aprobadas
 
-- Determinar si importe = precio_unitario × numero_personas.
+Esta sección documenta las decisiones operativas, económicas y técnicas que se encontraban pendientes de validación y que quedaron formalmente aprobadas mediante el documento *Decisiones Aprobadas TZISCA*. Los identificadores DP-OP, DP-EC y DP-TEC se conservan como trazabilidad histórica del proceso de aprobación; ya no representan pendientes y las reglas resultantes RN-91 a RN-108 (sección 17) son la referencia normativa vigente. Estas decisiones ya pueden utilizarse para implementación, incluyendo la configuración de AvailabilityService y RefundService.
 
-- Determinar si existen cargos adicionales y, en su caso, cuáles son.
+## 18.1. Decisiones operativas aprobadas
 
-DP-EC-02 — Pago aprobado con bloqueo expirado y disponibilidad perdida. Definir el tratamiento económico cuando el pago haya sido aprobado, el bloqueo temporal haya expirado y la revalidación confirme que la disponibilidad se perdió. La Reservacion no deberá confirmarse mientras no exista disponibilidad. Estado: Pendiente de aprobación.
+**DP-OP-01 — Hora de apertura.** 09:00. *Impacto principal: AvailabilityService. Estado: Aprobada.*
 
-- Determinar si corresponde un proceso de conciliación.
+**DP-OP-02 — Hora de cierre.** 20:00. Todo tratamiento deberá finalizar a más tardar a las 20:00. *Impacto principal: AvailabilityService. Estado: Aprobada.*
 
-- Determinar si corresponde una devolución.
+**DP-OP-03 — Días laborales.** Lunes a sábado. *Impacto principal: AvailabilityService. Estado: Aprobada.*
 
-- Determinar si corresponde cancelar la operación.
+**DP-OP-04 — Días no laborales y excepciones.** Domingo no laboral. Festivos, cierres extraordinarios y horarios especiales se registrarán como excepciones operativas. *Impacto principal: AvailabilityService / ExcepcionOperativa. Estado: Aprobada.*
 
-- Determinar si corresponde otro mecanismo formalmente aprobado.
+**DP-OP-05 — Duración de intervalos de agenda.** 30 minutos para los horarios de inicio ofrecidos al cliente. *Impacto principal: AvailabilityService. Estado: Aprobada.*
 
-## 17.3. Decisiones técnicas pendientes
+**DP-OP-06 — Anticipación mínima para reservar.** 2 horas antes del inicio del servicio. *Impacto principal: AvailabilityService. Estado: Aprobada.*
 
-DP-TEC-01 — Mecanismo de autenticación. Definir el mecanismo concreto de autenticación y gestión de sesión o token. Estado: Pendiente de aprobación.
+**DP-OP-07 — Anticipación máxima para reservar.** 60 días hacia el futuro. *Impacto principal: AvailabilityService. Estado: Aprobada.*
 
-DP-TEC-02 — Proveedor o pasarela de pago. Definir el proveedor, la pasarela o el mecanismo concreto para procesar pagos. Estado: Pendiente de aprobación.
+**DP-OP-08 — Duración del bloqueo temporal.** 15 minutos. La expiración deberá calcularse desde la creación o renovación válida del bloqueo. *Impacto principal: AvailabilityService / flujo de pago. Estado: Aprobada.*
 
-DP-TEC-03 — Algoritmo determinista de recomendación. Definir el algoritmo, sus criterios, prioridades y reglas de desempate para producir resultados reproducibles. Estado: Pendiente de aprobación.
+**DP-OP-09 — Política de tolerancia.** 15 minutos de tolerancia por llegada tardía. Después de ese margen, Recepción evaluará si el servicio aún puede realizarse sin afectar reservaciones posteriores; de no ser posible, se considerará inasistencia para efectos de devolución. *Impacto principal: Reservaciones / operación. Estado: Aprobada.*
 
-## 17.4. Condiciones para AvailabilityService
+**DP-OP-10 — Política de cancelación.** El Cliente puede cancelar antes del inicio del servicio. Administrador general y Recepción y cabinas pueden cancelar por causas operativas, registrando motivo y responsable. *Impacto principal: RefundService / Reservaciones. Estado: Aprobada.*
 
-AvailabilityService deberá calcular disponibilidad únicamente con parámetros operativos previamente aprobados. Como mínimo, deberá considerar horario de apertura y cierre, días laborables y no laborables, duración de intervalos, anticipación mínima y máxima, vigencia de bloqueos temporales y los bloqueos operativos ya definidos para cabinas.
+**DP-OP-11 — Condiciones de devolución.** Cancelación con 24 horas o más: 100%. Entre 6 y menos de 24 horas: 50%. Menos de 6 horas: sin devolución. Si el spa cancela por causa operativa: 100%. *Impacto principal: RefundService. Estado: Aprobada.*
 
-La ausencia de un valor aprobado no deberá resolverse mediante un valor supuesto en el código. Antes de habilitar el módulo en producción, estos parámetros deberán existir como configuración explícita y validada.
+**DP-OP-12 — Tiempo límite para cancelar con devolución.** Se conserva derecho a devolución conforme a los tramos aprobados: 100% con 24 h o más; 50% entre 6 h y menos de 24 h; sin devolución con menos de 6 h. *Impacto principal: RefundService. Estado: Aprobada.*
+
+**DP-OP-13 — Casos sin derecho a devolución.** Inasistencia, cancelación con menos de 6 horas, servicio ya iniciado o servicio completado. *Impacto principal: RefundService. Estado: Aprobada.*
+
+## 18.2. Decisiones económicas aprobadas
+
+**DP-EC-01 — Fórmula del importe.** Tratamiento.precio_base se interpreta como precio por persona. Para cada ReservacionTratamiento: precio_unitario = precio_base vigente al reservar; importe = precio_unitario × numero_personas. El total de la Reservacion es la suma de los importes de sus tratamientos. No se aplican cargos adicionales en el MVP. *Impacto principal: Tratamiento, ReservacionTratamiento, Pago. Estado: Aprobada.* Ver RN-104.
+
+**DP-EC-02 — Pago aprobado con disponibilidad perdida.** Si el Pago está PAGADO pero la revalidación confirma pérdida de disponibilidad, la Reservacion NO se confirma. Permanece en EN_PROCESO mientras se resuelve el conflicto. El Cliente podrá: (a) seleccionar otra cabina/horario disponible; (b) conservar tratamientos válidos y solicitar devolución parcial del tratamiento afectado; o (c) cancelar la operación y recibir devolución total. Toda acción deberá conservar trazabilidad. No se genera una confirmación automática ni se asume una devolución automática sin decisión del Cliente. *Impacto principal: PaymentService / RefundService / Reservaciones. Estado: Aprobada.* Ver RN-105.
+
+## 18.3. Decisiones técnicas aprobadas
+
+**DP-TEC-01 — Mecanismo de autenticación.** ASP.NET Core Identity para gestión de usuarios y credenciales. La API utilizará JWT como access token y un mecanismo de refresh token seguro para renovación de sesión. La autorización se aplicará por rol y permisos. *Impacto principal: /auth, /users, seguridad API. Estado: Aprobada.* Ver RN-106.
+
+**DP-TEC-02 — Proveedor o pasarela de pago.** Stripe será la pasarela inicial. La integración se realizará detrás de una abstracción PaymentService para no acoplar la lógica de negocio al proveedor y permitir sustitución futura. No se almacenarán datos bancarios sensibles completos. *Impacto principal: /payments, /refunds, TransaccionPago. Estado: Aprobada.* Ver RN-107.
+
+**DP-TEC-03 — Algoritmo determinista de recomendación.** Orden de evaluación: 1) compatibilidad TratamientoCabina; 2) capacidad suficiente; 3) estado operativo permitido; 4) disponibilidad del intervalo completo; 5) preferencias del cliente cuando existan; 6) prioridad a cabina especializada frente a multifuncional cuando ambas cumplan; 7) desempate por prioridad configurada y, finalmente, id_cabina ascendente para garantizar reproducibilidad. *Impacto principal: RecommendationService. Estado: Aprobada.* Ver RN-108.
+
+## 18.4. Condiciones para AvailabilityService
+
+AvailabilityService deberá calcular disponibilidad utilizando los parámetros operativos aprobados en esta sección: horario de apertura (09:00) y cierre (20:00), días laborables (lunes a sábado) y no laborables (domingo, más excepciones operativas), duración de intervalos (30 minutos), anticipación mínima (2 horas) y máxima (60 días), vigencia de bloqueos temporales (15 minutos) y los bloqueos operativos ya definidos para cabinas.
+
+Estos parámetros deberán implementarse como configuración (ParametroOperativo, DiaLaborable, ExcepcionOperativa) y no como constantes dispersas en el código.
 
 La disponibilidad continuará respetando las reglas ya vigentes sobre duración completa del tratamiento, prevención de traslapes, compatibilidad, capacidad, estado operativo de la cabina y bloqueos existentes.
 
-## 17.5. Condiciones para RefundService
+## 18.5. Condiciones para RefundService
 
-RefundService no deberá decidir devoluciones únicamente porque exista una cancelación. Antes de generar una devolución deberá consultar la política aprobada, el momento de la cancelación respecto al inicio del servicio, el pago original, el importe pagado, las devoluciones previas y el tratamiento o reservación afectados.
+RefundService deberá aplicar las políticas ya aprobadas en esta sección al determinar si corresponde una devolución: la política de cancelación (DP-OP-10), las condiciones de devolución por tramos de anticipación (DP-OP-11 y DP-OP-12) y los casos sin derecho a devolución (DP-OP-13), además del tratamiento económico de pago aprobado con disponibilidad perdida (DP-EC-02).
 
-Mientras no estén aprobadas la política de cancelación, las condiciones de devolución, el tiempo límite y los casos sin derecho a devolución, el sistema podrá conservar la trazabilidad de la cancelación y del pago, pero no deberá aplicar porcentajes, importes, plazos o criterios de reembolso asumidos.
+Antes de generar una devolución, RefundService deberá consultar el momento de la cancelación respecto al inicio del servicio, el pago original, el importe pagado, las devoluciones previas y el tratamiento o reservación afectados.
 
-Una vez aprobadas las políticas, RefundService deberá permitir determinar de forma reproducible si corresponde devolución total, parcial o ninguna devolución y registrar el resultado conforme a las reglas de pagos y devoluciones ya definidas.
+RefundService deberá permitir determinar de forma reproducible si corresponde devolución total, parcial o ninguna devolución y registrar el resultado conforme a las reglas de pagos y devoluciones ya definidas.
 
-## 17.6. Criterio de cierre de estas decisiones
+## 18.6. Criterio de cierre de estas decisiones
 
-Esta sección se considerará cerrada cuando cada decisión pendiente tenga un valor, fórmula, mecanismo o condición formalmente aprobada, esté representada en las reglas de negocio correspondientes y pueda convertirse en criterios de aceptación y pruebas. Hasta entonces, los elementos de esta sección deberán conservar el estado Pendiente de aprobación.
+Esta sección queda cerrada. DP-OP-01 a DP-OP-13, DP-EC-01 a DP-EC-02 y DP-TEC-01 a DP-TEC-03 cuentan con un valor, fórmula, mecanismo o condición formalmente aprobada, están representadas en las reglas de negocio RN-91 a RN-108 (sección 17) y ya pueden convertirse en criterios de aceptación, casos de uso, modelo de datos, API y pruebas.
 
-Nota de consistencia: cualquier valor documentado para la duración del bloqueo temporal, incluido un valor fijo expresado en minutos, deberá considerarse no aprobado hasta su validación formal.
+Nota de consistencia: el valor oficial de la duración del bloqueo temporal es de 15 minutos (DP-OP-08, RN-98). Cualquier referencia previa a un valor distinto, incluida la mención histórica de 10 minutos en versiones anteriores del documento, queda sustituida por este valor aprobado.
 
-# 18. Resumen de reglas por área — Total: 90 reglas de negocio
+# 19. Resumen de reglas por área — Total: 108 reglas de negocio
 
-| **Área**                 | **Rango**     | **Cantidad** |
-|--------------------------|---------------|--------------|
-| Usuarios y roles         | RN-01 a RN-07 | 7            |
-| Tratamientos             | RN-08 a RN-11 | 4            |
-| Cabinas                  | RN-12 a RN-16 | 5            |
-| Recomendación de cabinas | RN-17 a RN-21 | 5            |
-| Carrito de reservación   | RN-22 a RN-26 | 5            |
-| Disponibilidad           | RN-27 a RN-29 | 3            |
-| Bloqueo temporal         | RN-30 a RN-37 | 8            |
-| Confirmación             | RN-38 a RN-41 | 4            |
-| Estados                  | RN-42 a RN-45 | 4            |
-| Proveedores              | RN-46 a RN-51 | 6            |
-| Reasignación automática  | RN-52 a RN-56 | 5            |
-| Cancelaciones            | RN-57 a RN-62 | 6            |
-| Operación de cabinas     | RN-63 a RN-67 | 5            |
-| Historial y trazabilidad | RN-68 a RN-70 | 3            |
-| Reportes                 | RN-71 a RN-72 | 2            |
-| Pagos y devoluciones     | RN-73 a RN-90 | 18           |
+| **Área**                                              | **Rango**      | **Cantidad** |
+|--------------------------------------------------------|----------------|--------------|
+| Usuarios y roles                                       | RN-01 a RN-07  | 7            |
+| Tratamientos                                            | RN-08 a RN-11  | 4            |
+| Cabinas                                                 | RN-12 a RN-16  | 5            |
+| Recomendación de cabinas                                | RN-17 a RN-21  | 5            |
+| Carrito de reservación                                  | RN-22 a RN-26  | 5            |
+| Disponibilidad                                          | RN-27 a RN-29  | 3            |
+| Bloqueo temporal                                        | RN-30 a RN-37  | 8            |
+| Confirmación                                            | RN-38 a RN-41  | 4            |
+| Estados                                                 | RN-42 a RN-45  | 4            |
+| Proveedores                                             | RN-46 a RN-51  | 6            |
+| Reasignación automática                                 | RN-52 a RN-56  | 5            |
+| Cancelaciones                                           | RN-57 a RN-62  | 6            |
+| Operación de cabinas                                    | RN-63 a RN-67  | 5            |
+| Historial y trazabilidad                                | RN-68 a RN-70  | 3            |
+| Reportes                                                | RN-71 a RN-72  | 2            |
+| Pagos y devoluciones                                    | RN-73 a RN-90  | 18           |
+| Decisiones aprobadas (horario, económicas y técnicas)   | RN-91 a RN-108 | 18           |
