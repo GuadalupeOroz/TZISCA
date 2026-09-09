@@ -1,0 +1,81 @@
+# =========================
+# macOS
+# =========================
+.DS_Store
+
+# =========================
+# Visual Studio / .NET
+# =========================
+.vs/
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# =========================
+# .NET secrets / environment
+# =========================
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+
+# =========================
+# Angular / Node
+# =========================
+node_modules/
+dist/
+.angular/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# =========================
+# Environment variables
+# =========================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# =========================
+# IDEs
+# =========================
+.idea/
+.vscode/
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# Temporary files
+# =========================
+*.tmp
+*.temp
+
+# =========================
+# SQL Server / database
+# =========================
+*.bak
+*.mdf
+*.ldf
+
+# =========================
+# OS
+# =========================
+Thumbs.db
+Desktop.ini
+
+
+
+# Documentos fuente y respaldos locales
+fuentes/
+respaldo-md/
+
+# Scripts temporales de conversión
+convertir-documentacion.sh
