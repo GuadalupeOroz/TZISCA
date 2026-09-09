@@ -151,7 +151,7 @@ TZISCA/
 
 ## Galería visual
 
-La portada es una ilustración conceptual creada localmente. La documentación incluye **73 pantallas y variantes de Figma V3** y **15 diagramas del FigJam**. Las interfaces son prototipos; las capturas de una aplicación implementada siguen pendientes.
+Muestra representativa de las vistas documentadas, no el inventario completo. La documentación incluye **73 pantallas y variantes de Figma V3** y **15 diagramas del FigJam**. Las interfaces son prototipos; las capturas de una aplicación implementada siguen pendientes.
 
 - [Inventario de vistas por rol](docs/vistas/README.md).
 - [Convención de capturas y miniaturas](docs/screenshots/README.md).
@@ -162,67 +162,90 @@ La portada es una ilustración conceptual creada localmente. La documentación i
 
 <table>
 <tr>
-<td align="center"><a href="docs/vistas/cliente/cliente-login.png"><img src="docs/screenshots/thumbs/cliente-login.png" width="240" alt="Prototipo: Acceso común — Todos los roles"><br>Acceso común — Todos los roles</a></td>
-<td align="center"><a href="docs/vistas/cliente/cliente-catalogo.png"><img src="docs/screenshots/thumbs/cliente-catalogo.png" width="240" alt="Prototipo: Inicio y catálogo — Cliente"><br>Inicio y catálogo — Cliente</a></td>
-<td align="center"><a href="docs/vistas/cliente/cliente-carrito.png"><img src="docs/screenshots/thumbs/cliente-carrito.png" width="240" alt="Prototipo: Tu carrito"><br>Tu carrito</a></td>
+<td align="center">
+<a href="docs/vistas/cliente/cliente-login.png">
+<img src="docs/screenshots/thumbs/cliente-login.png" width="240" alt="Cliente - Login">
+<br>Login
+</a>
+</td>
+<td align="center">
+<a href="docs/vistas/cliente/cliente-catalogo.png">
+<img src="docs/screenshots/thumbs/cliente-catalogo.png" width="240" alt="Cliente - Catálogo">
+<br>Catálogo
+</a>
+</td>
+<td align="center">
+<a href="docs/vistas/cliente/cliente-pago.png">
+<img src="docs/screenshots/thumbs/cliente-pago.png" width="240" alt="Cliente - Pago">
+<br>Pago
+</a>
+</td>
 </tr>
 </table>
 
-[Ver todas las pantallas de Cliente](docs/vistas/cliente/README.md).
+[Ver todas las vistas de Cliente](docs/vistas/cliente/README.md)
 
 ### Administrador
 
 <table>
 <tr>
-<td align="center"><a href="docs/vistas/administrador/admin-dashboard.png"><img src="docs/screenshots/thumbs/admin-dashboard.png" width="240" alt="Prototipo: Dashboard"><br>Dashboard</a></td>
-<td align="center"><a href="docs/vistas/administrador/admin-reservaciones.png"><img src="docs/screenshots/thumbs/admin-reservaciones.png" width="240" alt="Prototipo: Reservaciones"><br>Reservaciones</a></td>
-<td align="center"><a href="docs/vistas/administrador/admin-pagos.png"><img src="docs/screenshots/thumbs/admin-pagos.png" width="240" alt="Prototipo: Pagos"><br>Pagos</a></td>
+<td align="center">
+<a href="docs/vistas/administrador/admin-dashboard.png">
+<img src="docs/screenshots/thumbs/admin-dashboard.png" width="240" alt="Administrador - Dashboard">
+<br>Dashboard
+</a>
+</td>
 </tr>
 </table>
 
-[Ver todas las pantallas de Administrador general](docs/vistas/administrador/README.md).
+[Ver todas las vistas de Administrador general](docs/vistas/administrador/README.md)
 
 ### Recepción
 
 <table>
 <tr>
-<td align="center"><a href="docs/vistas/recepcion/recepcion-agenda-diaria.png"><img src="docs/screenshots/thumbs/recepcion-agenda-diaria.png" width="240" alt="Prototipo: Agenda diaria — Recepción"><br>Agenda diaria — Recepción</a></td>
-<td align="center"><a href="docs/vistas/recepcion/recepcion-reservacion-manual.png"><img src="docs/screenshots/thumbs/recepcion-reservacion-manual.png" width="240" alt="Prototipo: Reserva · 1 Cliente"><br>Reserva · 1 Cliente</a></td>
-<td align="center"><a href="docs/vistas/recepcion/recepcion-pago-manual.png"><img src="docs/screenshots/thumbs/recepcion-pago-manual.png" width="240" alt="Prototipo: Reserva · 5 Pago"><br>Reserva · 5 Pago</a></td>
+<td align="center">
+<a href="docs/vistas/recepcion/recepcion-agenda-diaria.png">
+<img src="docs/screenshots/thumbs/recepcion-agenda-diaria.png" width="240" alt="Recepción - Agenda diaria">
+<br>Agenda diaria
+</a>
+</td>
 </tr>
 </table>
 
-[Ver todas las pantallas de Recepción y cabinas](docs/vistas/recepcion/README.md).
+[Ver todas las vistas de Recepción y cabinas](docs/vistas/recepcion/README.md)
 
 ### Proveedor
 
 <table>
 <tr>
-<td align="center"><a href="docs/vistas/proveedor/proveedor-agenda.png"><img src="docs/screenshots/thumbs/proveedor-agenda.png" width="240" alt="Prototipo: Mi agenda"><br>Mi agenda</a></td>
-<td align="center"><a href="docs/vistas/proveedor/proveedor-detalle-tratamiento.png"><img src="docs/screenshots/thumbs/proveedor-detalle-tratamiento.png" width="240" alt="Prototipo: Detalle del tratamiento"><br>Detalle del tratamiento</a></td>
-<td align="center"><a href="docs/vistas/proveedor/proveedor-iniciar-atencion.png"><img src="docs/screenshots/thumbs/proveedor-iniciar-atencion.png" width="240" alt="Prototipo: Confirmar inicio de atención"><br>Confirmar inicio de atención</a></td>
+<td align="center">
+<a href="docs/vistas/proveedor/proveedor-agenda.png">
+<img src="docs/screenshots/thumbs/proveedor-agenda.png" width="240" alt="Proveedor - Mi agenda">
+<br>Mi agenda
+</a>
+</td>
 </tr>
 </table>
 
-[Ver todas las pantallas de Proveedor de tratamiento](docs/vistas/proveedor/README.md).
+[Ver todas las vistas de Proveedor de tratamiento](docs/vistas/proveedor/README.md)
 
 ## Diagramas de casos de uso
 
-Exportaciones del FigJam correspondientes a las cinco referencias compartidas. Abre cada miniatura para leer la imagen completa.
+Muestra representativa. Los quince diagramas exportados del FigJam se conservan en `docs/diagramas/` y no se renderizan aquí.
 
 <table>
 <tr>
-<td align="center"><a href="docs/diagramas/casos-uso-general.png"><img src="docs/screenshots/thumbs/casos-uso-general.png" height="160" alt="Casos de uso general"><br>Casos de uso general</a></td>
-<td align="center"><a href="docs/diagramas/casos-uso-cliente.png"><img src="docs/screenshots/thumbs/casos-uso-cliente.png" height="160" alt="Casos de uso — Cliente"><br>Casos de uso — Cliente</a></td>
-<td align="center"><a href="docs/diagramas/casos-uso-administrador.png"><img src="docs/screenshots/thumbs/casos-uso-administrador.png" height="160" alt="Casos de uso — Administrador general"><br>Casos de uso — Administrador general</a></td>
-</tr>
-<tr>
-<td align="center"><a href="docs/diagramas/casos-uso-recepcion.png"><img src="docs/screenshots/thumbs/casos-uso-recepcion.png" height="160" alt="Casos de uso — Recepción y cabinas"><br>Casos de uso — Recepción y cabinas</a></td>
-<td align="center"><a href="docs/diagramas/casos-uso-proveedor.png"><img src="docs/screenshots/thumbs/casos-uso-proveedor.png" height="160" alt="Casos de uso — Proveedor y automatizaciones"><br>Casos de uso — Proveedor y automatizaciones</a></td>
+<td align="center">
+<a href="docs/diagramas/casos-uso-general.png">
+<img src="docs/screenshots/thumbs/casos-uso-general.png" width="240" alt="Diagrama - Casos de uso general">
+<br>Casos de uso general
+</a>
+</td>
 </tr>
 </table>
 
-[Ver los 15 diagramas exportados y los cuatro Mermaid](docs/diagramas/README.md).
+[Ver todos los diagramas](docs/diagramas/README.md)
 
 ## Diagramas
 
