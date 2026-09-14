@@ -1,843 +1,441 @@
-*Documento corregido y cerrado — Versión cerrada, 08/09/2026; actualizada el 09/09/2026 con las decisiones aprobadas. Fuente oficial para el Diagrama Entidad–Relación, el modelo físico en SQL Server, el Diseño de API REST y la Matriz de Trazabilidad.*
+# TZISCA
 
-> ***Nota de versión — documento cerrado. Esta es la versión corregida y cerrada del Diccionario de Datos y Modelo de Datos Depurado de TZISCA, actualizada el 08/09/2026 conforme a las instrucciones de corrección y cierre vigentes. El trabajo se realizó sobre la versión anterior del documento: no se reconstruyó desde cero, no se eliminaron entidades válidas y no se inventaron valores operativos o económicos pendientes de aprobación. Los cambios principales respecto a la versión previa son: (1) actualización de la referencia CU-01 a CU-38 → CU-01 a CU-43, y de RN-01 a RN-72 → RN-01 a RN-90; (2) incorporación de Reservacion.estado_reservacion (EN_PROCESO, CONFIRMADA, CANCELADA, EXPIRADA) y del ciclo formal de dos niveles con ReservacionTratamiento.estado; (3) cambio del default de ReservacionTratamiento.estado a PENDIENTE y normalización de su catálogo a PENDIENTE, CONFIRMADO, EN_ATENCION, COMPLETADO y CANCELADO, incluyendo la transición PENDIENTE→CANCELADO; (4) eliminación de la duración fija de 10 minutos en BloqueoTemporal.fecha_expiracion, trasladada a un parámetro operativo configurable pendiente de aprobación; (5) confirmación de los catálogos técnicos únicos de Pago.estado_pago y Devolucion.estado_devolucion, sin agregar RECHAZADO como estado adicional; (6) incorporación de Devolucion.tipo_devolucion (PARCIAL/TOTAL), separado del estado técnico de la devolución; (7) TransaccionPago se mantiene como entidad opcional; (8) DP-EC-01 documenta la fórmula del importe como decisión pendiente, sin inventarla; (9) nueva sección de configuración operativa pendiente de modelado físico (horario, días laborales, excepciones, intervalos de agenda, anticipación mínima y máxima, duración del bloqueo); (10) corrección de las cardinalidades Reservacion→Pago, ReservacionTratamiento→Devolucion y Pago→TransaccionPago a 1:0..N; (11) eliminación de la decisión pendiente sobre el uso de PENDIENTE, ya resuelta. El documento queda cerrado como fuente oficial para el Diagrama Entidad–Relación, el modelo físico en SQL Server, el Diseño de API REST y la Matriz de Trazabilidad.***
+**DICCIONARIO DE DATOS Y MODELO DE DATOS DEPURADO**
 
-> ***Nota de actualización — 09/09/2026. El documento *Decisiones Aprobadas TZISCA* formalizó DP-OP-01 a DP-OP-13, DP-EC-01 a DP-EC-02 y DP-TEC-01 a DP-TEC-03, hasta entonces pendientes en esta versión cerrada. Esta actualización no reabre ni reconstruye el documento: incorpora los valores aprobados en los campos y secciones que antes decían "PENDIENTE DE APROBACIÓN" (ParametroOperativo, sección 7), actualiza las notas de consistencia sobre precio_base/importe (DP-EC-01, RN-104) y sobre pago aprobado con disponibilidad perdida (DP-EC-02, RN-105), incorpora las tres entidades operativas de agenda (ParametroOperativo, DiaLaborable, ExcepcionOperativa) al conteo confirmado de entidades y ajusta la descripción de TransaccionPago conforme a DP-TEC-02 (Stripe mediante PaymentService). No se elimina ninguna entidad, campo ni relación previamente definida.***
+Versión alineada al modelo vigente de 19 entidades y a RN-01 a RN-108. Fecha de actualización: 13/09/2026.
 
-# 1. Propósito del documento
+## 1. Propósito del documento
 
-Este documento consolida la versión de trabajo del diccionario de datos de TZISCA y las decisiones de depuración realizadas antes de elaborar el Diagrama Entidad–Relación. El modelo se deriva del alcance funcional definido en los Casos de Uso CU-01 a CU-43, las Reglas de Negocio RN-01 a RN-90, los Criterios de Aceptación CU-01 a CU-43, la Propuesta General TZISCA actualizada, el Catálogo de Cabinas y Servicios TZISCA actualizado y el Diseño de API REST TZISCA.
+Este documento define el modelo lógico y físico de referencia para SQL Server. La estructura se organiza en seguridad, catalogo, reservas, operacion y pagos. No declara como entidades oficiales conceptos del modelo anterior.
 
-La versión actual se declara derivada de:
+## 2. Convenciones de SQL Server
 
-\- Casos de Uso CU-01 a CU-43.
+Los tipos indicados son tipos físicos de SQL Server. PK identifica llave primaria, FK llave foránea, UNIQUE unicidad y DEFAULT el valor aplicado por la base. Las fechas operativas deben almacenarse de forma consistente y convertirse a la zona horaria de la aplicación.
 
-\- Reglas de Negocio RN-01 a RN-90.
+## 3. Inventario oficial de entidades
 
-\- Criterios de Aceptación CU-01 a CU-43.
+| Núm. | Entidad | Schema | Finalidad |
+| --- | --- | --- | --- |
+| 1 | Rol | seguridad | Define los roles funcionales y de autorización. |
+| 2 | Usuario | seguridad | Representa la cuenta de acceso vinculada con ASP.NET Core Identity. |
+| 3 | Cliente | seguridad | Distingue el perfil de cliente de la cuenta Usuario. |
+| 4 | PreferenciaCliente | seguridad | Guarda preferencias opcionales para recomendaciones. |
+| 5 | Tratamiento | catalogo | Define cada servicio ofrecido por el spa. |
+| 6 | Carrito | reservas | Agrupa selecciones temporales del Cliente antes de confirmar Citas. |
+| 7 | Proveedor | operacion | Representa al usuario que puede atender tratamientos. |
+| 8 | TratamientoProveedor | operacion | Resuelve la relación N:M entre Tratamiento y Proveedor. |
+| 9 | DisponibilidadProveedor | operacion | Registra disponibilidad o indisponibilidad operativa por intervalo. |
+| 10 | Paquete | catalogo | Representa un conjunto comercial o funcional de tratamientos. |
+| 11 | PaqueteTratamiento | catalogo | Resuelve la relación N:M entre Paquete y Tratamiento. |
+| 12 | Cabina | operacion | Representa cada cabina física y separa habilitación de estado operativo. |
+| 13 | EstadoCabina | operacion | Conserva el historial de cambios de Cabina.estado. |
+| 14 | Cita | reservas | Unidad principal de agenda; representa un tratamiento programado para un Cliente. |
+| 15 | CitaCabina | reservas | Resuelve la relación N:M entre Cita y Cabina. |
+| 16 | Pago | pagos | Registra cobros asociados a una Cita. |
+| 17 | Cancelacion | pagos | Conserva el motivo y momento de cancelar una Cita. |
+| 18 | Devolucion | pagos | Registra reembolsos totales, parciales o de monto cero derivados de la política. |
+| 19 | Transaccion | pagos | Conserva intentos y respuestas técnicas de PaymentService y Stripe. |
 
-\- Propuesta General TZISCA actualizada.
+Total oficial: 19 entidades.
 
-\- Catálogo de Cabinas y Servicios TZISCA actualizado.
+## 4. Diccionario de datos
 
-\- Diseño de API REST TZISCA.
+### 4.1. Rol
 
-La finalidad es establecer qué entidades necesita el sistema, qué información almacenará cada una, cómo se relacionan y qué redundancias se evitarán antes de convertir el modelo en un esquema relacional definitivo para SQL Server.
-
-# 2. Convención de tipos de datos acordada
-
-Por decisión del proyecto, los campos de cadena o contenido alfanumérico se documentan utilizando el tipo TEXT. No se utilizará VARCHAR en este diccionario. TEXT se emplea aquí como convención conceptual del modelo; la implementación física en SQL Server definirá la equivalencia técnica adecuada para cada campo sin modificar la nomenclatura de este diccionario.
-
-| **Tipo** | **Uso** |
-|----|----|
-| INT | Identificadores y cantidades enteras. |
-| BIGINT | Identificadores de tablas transaccionales o históricas con mayor crecimiento. |
-| BIT | Valores lógicos: sí/no, activo/inactivo. |
-| DATE | Fechas sin hora cuando se requiera. |
-| TIME | Horas sin fecha cuando se requiera. |
-| DATETIME2 | Fecha y hora para eventos, intervalos, auditoría y programación. |
-| TEXT | Cualquier cadena de caracteres o contenido textual. |
-| DECIMAL(10,2) | Importes monetarios y valores económicos con dos posiciones decimales. |
-
-# 3. Principios del modelo depurado
-
-| **Decisión** | **Aplicación** |
-|----|----|
-| Reservación con detalle independiente | Una reservación funciona como encabezado y puede contener uno o varios tratamientos. Cada tratamiento conserva de forma independiente cabina, personas, horario y estado. |
-| Usuarios centralizados | Cliente, Administrador general, Recepción y cabinas y Proveedor comparten la tabla Usuario; no se crean tablas separadas para cada rol. |
-| Proveedor como extensión | Proveedor amplía la cuenta Usuario únicamente con la información específica necesaria para asignaciones e indisponibilidades. |
-| Compatibilidades N:M | Tratamiento–Cabina y Proveedor–Tratamiento se resuelven mediante tablas intermedias. |
-| Carrito separado de reservación | Agregar un servicio al carrito no equivale a reservarlo; por eso Carrito y CarritoTratamiento permanecen separados de Reservacion. |
-| Dos tipos de bloqueo | BloqueoTemporal protege el horario durante el carrito; BloqueoCabina representa causas operativas como mantenimiento o limpieza. |
-| Asignación de proveedor con historial | La tabla AsignacionProveedor conserva la asignación vigente y las sustituciones, evitando duplicar id_proveedor dentro de ReservacionTratamiento. |
-| Ciclo formal de dos niveles (Reservacion / ReservacionTratamiento) | Toda reservación nace en EN_PROCESO con sus tratamientos en PENDIENTE. Solo cuando el pago es aprobado y la disponibilidad se revalida, Reservacion pasa a CONFIRMADA y cada ReservacionTratamiento válido pasa de PENDIENTE a CONFIRMADO (RN-38 a RN-41, RN-73, RN-75; ver sección 4 de este documento). Los tratamientos siguen manejando estados independientes entre sí y respecto al estado general de la reservación. |
-| Estado actual + historial | Cabina, Reservacion y ReservacionTratamiento conservan el estado actual, mientras los historiales registran las transiciones. |
-| Sin tabla Reporte | Los reportes básicos se obtienen consultando y agregando datos de reservaciones, tratamientos, cabinas y cancelaciones. |
-| Sin Bitácora general en esta versión | La trazabilidad funcional queda cubierta por tablas específicas de historial, bloqueos, asignaciones y cancelaciones; una auditoría técnica global podrá añadirse si el proyecto la requiere posteriormente. |
-| Pagos separados de la reservación | La información financiera no se almacena directamente dentro de Reservacion. Cada reservación puede relacionarse con uno o más registros de Pago para conservar intentos, estados y trazabilidad. Las devoluciones se registran mediante Devolucion, permitiendo movimientos totales o parciales sin eliminar el historial original del pago. Pago permanece separado de Reservacion y Devolucion permanece separada de Pago; esta versión no modifica esa decisión. |
-| Importes históricos independientes del catálogo | El precio vigente de un tratamiento puede modificarse posteriormente. ReservacionTratamiento conserva el precio aplicado y el importe de la instancia al momento de reservar para no alterar información histórica. La fórmula de cálculo del importe está aprobada conforme a DP-EC-01 (RN-104, sección 11): precio_base es precio por persona; importe = precio_unitario × numero_personas. |
+Finalidad: Define los roles funcionales y de autorización.
 
-# 4. Ciclo de vida de estados: Reservacion y ReservacionTratamiento
+Schema: seguridad. Nombre físico: seguridad.Rol.
 
-Este documento resuelve el uso ambiguo del estado Pendiente señalado en la versión anterior. TZISCA maneja dos niveles de estado independientes pero coordinados: el estado general de la reservación (Reservacion.estado_reservacion) y el estado de cada tratamiento que la compone (ReservacionTratamiento.estado). El flujo adoptado es consistente con RN-38 a RN-45 y RN-73 a RN-81 de Reglas de Negocio Horario y Políticas TZISCA (documento canónico).
+| Atributo | Tipo SQL Server | Llave | NULL | UNIQUE | DEFAULT | CHECK o restricción |
+| --- | --- | --- | --- | --- | --- | --- |
+| id_rol | INT IDENTITY | PK | No | Sí | — | > 0 |
+| nombre | NVARCHAR(50) | — | No | Sí | — | No vacío |
+| descripcion | NVARCHAR(250) | — | Sí | No | NULL | — |
+| activo | BIT | — | No | No | 1 | 0 o 1 |
 
-## 4.1 Estados de Reservacion.estado_reservacion
+Relaciones y cardinalidades: Rol 1:N Usuario.
 
-| **Estado** | **Significado** |
-|----|----|
-| EN_PROCESO | Reservación creada antes de completarse el pago o la confirmación definitiva. Es el estado inicial (default). |
-| CONFIRMADA | Los recursos quedaron confirmados y la condición económica se cumplió (pago aprobado y disponibilidad revalidada). |
-| CANCELADA | La reservación fue cancelada en su totalidad. |
-| EXPIRADA | El proceso no llegó a confirmarse y el bloqueo temporal asociado expiró; no puede continuar sin una nueva validación de disponibilidad. |
-
-**Transiciones formales de Reservacion:**
-
-| **Origen** | **Destino** | **Condición** |
-|----|----|----|
-| EN_PROCESO | CONFIRMADA | Pago aprobado y disponibilidad válida durante todo el intervalo (RN-39, RN-40, RN-75). |
-| EN_PROCESO | CANCELADA | Cancelación solicitada antes de completarse el pago o la confirmación. |
-| EN_PROCESO | EXPIRADA | El bloqueo temporal vigente expira sin que el pago o la confirmación se completen (RN-34, RN-81). |
-| CONFIRMADA | CANCELADA | Cancelación posterior a la confirmación, sujeta a las reglas de Cancelacion y Devolucion. |
+### 4.2. Usuario
 
-**Nota de consistencia (DP-EC-02):** el caso en que el pago ya fue aprobado pero el bloqueo temporal expiró y la revalidación de disponibilidad resultó negativa está identificado formalmente como DP-EC-02 en Reglas de Negocio Horario y Políticas TZISCA (sección 18.2) y quedó aprobado mediante *Decisiones Aprobadas TZISCA* (RN-105): la Reservacion no se confirma y permanece EN_PROCESO mientras no exista disponibilidad; el Cliente podrá seleccionar otra cabina u horario disponible, conservar los tratamientos válidos y solicitar devolución parcial del tratamiento afectado, o cancelar la operación y recibir devolución total, sin que TZISCA presuma ninguna de estas acciones automáticamente. El catálogo de ReservacionTratamiento.estado tampoco define un valor EXPIRADO equivalente (ver 4.2); el tratamiento de los registros PENDIENTE de una reservación EXPIRADA sigue el mecanismo aprobado en DP-EC-02.
-
-## 4.2 Estados de ReservacionTratamiento.estado
-
-| **Estado** | **Significado** |
-|----|----|
-| PENDIENTE | Estado inicial (default) de todo tratamiento de una reservación generada antes del pago (RN-38, RN-42). |
-| CONFIRMADO | El pago fue aprobado y la disponibilidad revalidada resultó satisfactoria para este tratamiento (RN-40). |
-| EN_ATENCION | El proveedor inició el servicio (RN-44). |
-| COMPLETADO | El proveedor finalizó el servicio (RN-45). |
-| CANCELADO | El tratamiento fue cancelado de forma individual; no puede pasar posteriormente a EN_ATENCION o COMPLETADO (RN-43). |
-
-**Transiciones formales de ReservacionTratamiento (explicadas formalmente):**
-
-| **Origen** | **Destino** | **Condición** |
-|----|----|----|
-| PENDIENTE | CONFIRMADO | Pago aprobado y disponibilidad revalidada satisfactoriamente para el tratamiento (RN-40). Un pago fallido, cancelado o rechazado no produce esta transición (RN-79). |
-| CONFIRMADO | EN_ATENCION | El proveedor inicia el servicio (RN-44). |
-| EN_ATENCION | COMPLETADO | El proveedor finaliza el servicio (RN-45). |
-| CONFIRMADO | CANCELADO | El tratamiento se cancela de forma individual antes de iniciar la atención (RN-43, RN-61). |
-| PENDIENTE | CANCELADO | El tratamiento se cancela o el proceso se abandona antes de confirmarse (por ejemplo, cancelación de la reservación en EN_PROCESO o expiración sin pago aprobado), conforme al diseño final del flujo de cancelación. |
-
-**Coordinación entre ambos niveles:** la confirmación del pago aplica al conjunto de tratamientos vigentes de la reservación. Al aprobarse el pago y revalidarse la disponibilidad de cada tratamiento incluido, Reservacion pasa de EN_PROCESO a CONFIRMADA y cada ReservacionTratamiento válido pasa de PENDIENTE a CONFIRMADO en la misma operación (RN-39, RN-40, RN-75). Si uno de varios tratamientos presenta un conflicto, los demás no se cancelan automáticamente (RN-41).
-
-# 5. Estructura general de entidades
-
-| **\#** | **Entidad** | **Finalidad** |
-|----|----|----|
-| 1 | Rol | Define los roles y permisos generales reconocidos por TZISCA. |
-| 2 | Usuario | Almacena las cuentas de acceso de todos los roles del sistema. |
-| 3 | PreferenciaCliente | Guarda las preferencias opcionales utilizadas para personalizar recomendaciones de cabina. |
-| 4 | TipoCabina | Clasifica las cabinas físicas por tipo funcional. |
-| 5 | Cabina | Representa cada cabina física administrada por el spa. |
-| 6 | Tratamiento | Almacena los servicios o tratamientos ofrecidos por el spa. |
-| 7 | TratamientoCabina | Resuelve la relación muchos a muchos entre tratamientos y cabinas compatibles. |
-| 8 | Proveedor | Extiende la cuenta Usuario cuando el usuario presta tratamientos. |
-| 9 | ProveedorTratamiento | Indica qué tratamientos está autorizado a realizar cada proveedor. |
-| 10 | Carrito | Representa la selección temporal del cliente antes de confirmar una reservación. |
-| 11 | CarritoTratamiento | Almacena cada instancia de tratamiento agregada al carrito y su configuración provisional. |
-| 12 | BloqueoTemporal | Protege provisionalmente un intervalo de cabina durante el proceso de carrito. |
-| 13 | Reservacion | Encabezado general de la reservación; conserva su propio estado operativo (EN_PROCESO, CONFIRMADA, CANCELADA o EXPIRADA), independiente del estado de cada tratamiento. |
-| 14 | ReservacionTratamiento | Tabla transaccional central: representa cada tratamiento independiente contenido en una reservación. |
-| 15 | AsignacionProveedor | Registra asignaciones iniciales y sustituciones de proveedores, conservando historial. |
-| 16 | BloqueoCabina | Registra bloqueos operativos de una cabina por mantenimiento, limpieza, incidencia, uso interno u otra causa. |
-| 17 | HistorialEstadoCabina | Conserva los cambios del estado operativo de cada cabina. |
-| 18 | IndisponibilidadProveedor | Conserva periodos en que un proveedor no puede recibir nuevas asignaciones. |
-| 19 | HistorialEstadoTratamiento | Registra las transiciones de estado de cada tratamiento reservado. |
-| 20 | Cancelacion | Conserva la información propia de cancelaciones individuales o de reservación completa. |
-| 21 | Pago | Registra las operaciones económicas relacionadas con una reservación, incluyendo importe, método, estado y referencia. |
-| 22 | Devolucion | Registra devoluciones totales o parciales relacionadas con pagos y cancelaciones, clasificadas mediante tipo_devolucion. |
-| 23 | ParametroOperativo | Configuración operativa vigente de agenda: horario general, intervalo de agenda, anticipación y duración del bloqueo temporal, con valores aprobados (sección 7). |
-| 24 | DiaLaborable | Días de la semana en que el spa opera y su horario particular cuando difiere del horario general, con valores aprobados (sección 7). |
-| 25 | ExcepcionOperativa | Fechas no laborables o con horario especial que prevalecen sobre el calendario regular (sección 7). |
-| 26 | TransaccionPago (opcional) | Conserva historial técnico de intentos y respuestas de la pasarela externa (Stripe, DP-TEC-02) cuando se implemente la integración. |
-
-Total confirmado: 25 entidades obligatorias más 1 entidad opcional (TransaccionPago) = **26 entidades**. Las entidades ParametroOperativo, DiaLaborable y ExcepcionOperativa (sección 7) se incorporan a este total porque sus valores fueron aprobados mediante *Decisiones Aprobadas TZISCA* (DP-OP-01 a DP-OP-08, RN-91 a RN-98); antes de esa aprobación permanecían fuera del conteo por depender de valores de negocio pendientes (ver el recálculo detallado en la sección 13).
-
-# 6. Diccionario de datos
-
-Las siguientes tablas constituyen la versión depurada previa al Diagrama Entidad–Relación. En la columna "Llave" se indica PK o la referencia FK. "Único" corresponde a restricciones propuestas para evitar duplicidades lógicas en los campos indicados.
-
-## 6.1. Rol
-
-Define los roles y permisos generales reconocidos por TZISCA.
-
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_rol | INT | PK | No | Sí | IDENTITY | Identificador único del rol. |
-| nombre | TEXT | — | No | Sí | — | Nombre del rol: Cliente, Administrador general, Recepción y cabinas o Proveedor de tratamiento. |
-| descripcion | TEXT | — | Sí | No | NULL | Descripción funcional del rol. |
-| activo | BIT | — | No | No | 1 | Indica si el rol está habilitado. |
-
-**Relaciones:** Rol 1:N Usuario.
-
-## 6.2. Usuario
-
-Almacena las cuentas de acceso de todos los roles del sistema.
-
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_usuario | INT | PK | No | Sí | IDENTITY | Identificador único del usuario. |
-| id_rol | INT | FK → Rol.id_rol | No | No | — | Rol actual del usuario. |
-| nombre | TEXT | — | No | No | — | Nombre del usuario. |
-| correo | TEXT | — | No | Sí | — | Correo de acceso; no debe duplicarse. |
-| telefono | TEXT | — | No | No | — | Teléfono de contacto. |
-| password_hash | TEXT | — | No | No | — | Representación segura de la contraseña. |
-| activo | BIT | — | No | No | 1 | Indica si la cuenta puede iniciar sesión. |
-| fecha_registro | DATETIME2 | — | No | No | Fecha/hora actual | Fecha y hora de creación de la cuenta. |
-| ultimo_acceso | DATETIME2 | — | Sí | No | NULL | Último acceso registrado. |
-
-**Relaciones:** Rol 1:N Usuario; Usuario 1:0..1 PreferenciaCliente; Usuario 1:0..1 Proveedor; Usuario 1:N Carrito; Usuario 1:N Reservacion (como cliente); Usuario participa como responsable en movimientos operativos.
-
-## 6.3. PreferenciaCliente
-
-Guarda las preferencias opcionales utilizadas para personalizar recomendaciones de cabina.
-
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_preferencia | INT | PK | No | Sí | IDENTITY | Identificador del registro de preferencias. |
-| id_usuario | INT | FK → Usuario.id_usuario | No | Sí | — | Cliente propietario de las preferencias. |
-| objetivo_visita | TEXT | — | Sí | No | NULL | Objetivo o intención general de la visita. |
-| modalidad_preferida | TEXT | — | Sí | No | NULL | Preferencia de modalidad, por ejemplo individual o pareja. |
-| privacidad_preferida | TEXT | — | Sí | No | NULL | Preferencia de privacidad. |
-| ambiente_preferido | TEXT | — | Sí | No | NULL | Tipo de ambiente preferido. |
-| requiere_accesibilidad | BIT | — | Sí | No | NULL | Preferencia relacionada con accesibilidad. |
-| observaciones | TEXT | — | Sí | No | NULL | Información adicional de preferencias. |
-| fecha_actualizacion | DATETIME2 | — | No | No | Fecha/hora actual | Última actualización de las preferencias. |
-
-**Relaciones:** Usuario 1:0..1 PreferenciaCliente.
-
-**Notas de diseño:** El perfil de preferencias es opcional; su ausencia no impide reservar.
-
-## 6.4. TipoCabina
-
-Clasifica las cabinas físicas por tipo funcional.
-
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_tipo_cabina | INT | PK | No | Sí | IDENTITY | Identificador del tipo de cabina. |
-| nombre | TEXT | — | No | Sí | — | Nombre del tipo de cabina. |
-| descripcion | TEXT | — | Sí | No | NULL | Descripción general del tipo. |
-| activo | BIT | — | No | No | 1 | Indica si el tipo permanece disponible para configuración. |
-
-**Relaciones:** TipoCabina 1:N Cabina.
-
-**Notas de diseño:** Tipos contemplados: masaje, facial, hidroterapia, sauna, integral/multifuncional y sal/haloterapia.
-
-## 6.5. Cabina
-
-Representa cada cabina física administrada por el spa.
-
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_cabina | INT | PK | No | Sí | IDENTITY | Identificador único de la cabina. |
-| id_tipo_cabina | INT | FK → TipoCabina.id_tipo_cabina | No | No | — | Tipo al que pertenece la cabina. |
-| nombre | TEXT | — | No | Sí | — | Nombre o identificador visible de la cabina. |
-| capacidad_maxima | INT | — | No | No | — | Cantidad máxima de personas permitidas. |
-| descripcion | TEXT | — | Sí | No | NULL | Descripción general. |
-| caracteristicas | TEXT | — | Sí | No | NULL | Características registradas para informar al cliente. |
-| equipamiento | TEXT | — | Sí | No | NULL | Equipamiento disponible. |
-| beneficios | TEXT | — | Sí | No | NULL | Beneficios informativos asociados al espacio. |
-| accesibilidad | TEXT | — | Sí | No | NULL | Información de accesibilidad. |
-| imagen_url | TEXT | — | Sí | No | NULL | Referencia o ubicación de imagen. |
-| observaciones | TEXT | — | Sí | No | NULL | Notas operativas. |
-| estado_operativo | TEXT | — | No | No | Disponible | Estado base: Disponible, En mantenimiento, Fuera de servicio o Desactivada. |
-
-**Relaciones:** TipoCabina 1:N Cabina; Cabina 1:N TratamientoCabina; Cabina 1:N BloqueoTemporal; Cabina 1:N BloqueoCabina; Cabina 1:N HistorialEstadoCabina; Cabina 1:N ReservacionTratamiento.
-
-**Notas de diseño:** Los estados persistentes de la cabina son Disponible, En mantenimiento, Fuera de servicio y Desactivada. "Ocupada" se interpreta como un estado *calculado* para un intervalo específico a partir de ReservacionTratamiento, BloqueoTemporal y BloqueoCabina; por ello no se guarda como estado permanente de catálogo. Esta versión revisó específicamente este punto y confirma que no debe agregarse "Ocupada" como valor persistente de Cabina.estado_operativo: una cabina puede estar libre a una hora y ocupada en otra sin generar contradicciones en el registro base.
-
-## 6.6. Tratamiento
-
-Almacena los servicios o tratamientos ofrecidos por el spa.
-
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_tratamiento | INT | PK | No | Sí | IDENTITY | Identificador del tratamiento. |
-| nombre | TEXT | — | No | No | — | Nombre del tratamiento. |
-| descripcion | TEXT | — | No | No | — | Descripción del servicio. |
-| duracion_minutos | INT | — | No | No | — | Duración programada en minutos. |
-| caracteristicas | TEXT | — | Sí | No | NULL | Características generales. |
-| beneficios | TEXT | — | Sí | No | NULL | Beneficios informativos. |
-| recomendaciones_generales | TEXT | — | Sí | No | NULL | Recomendaciones generales de uso. |
-| restricciones | TEXT | — | Sí | No | NULL | Consideraciones o restricciones operativas. |
-| imagen_url | TEXT | — | Sí | No | NULL | Imagen de referencia. |
-| requiere_proveedor | BIT | — | No | No | 1 | Indica si el servicio requiere proveedor asignado. |
-| activo | BIT | — | No | No | 1 | Solo tratamientos activos se ofrecen para nuevas reservaciones. |
-| fecha_registro | DATETIME2 | — | No | No | Fecha/hora actual | Fecha de alta en el catálogo. |
-| precio_base | DECIMAL(10,2) | — | No | No | — | Precio base vigente del tratamiento para nuevas reservaciones. Debe ser mayor o igual que cero. Conforme a DP-EC-01 (RN-104, sección 11), se interpreta como precio por persona. |
-| moneda | TEXT | — | No | No | MXN | Moneda en la que se expresa el precio base. Para la primera versión se utilizará MXN. |
-
-**Relaciones:** Tratamiento 1:N TratamientoCabina; Tratamiento 1:N ProveedorTratamiento; Tratamiento 1:N CarritoTratamiento; Tratamiento 1:N ReservacionTratamiento.
-
-## 6.7. TratamientoCabina
-
-Resuelve la relación muchos a muchos entre tratamientos y cabinas compatibles.
-
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_tratamiento_cabina | INT | PK | No | Sí | IDENTITY | Identificador de la compatibilidad. |
-| id_tratamiento | INT | FK → Tratamiento.id_tratamiento | No | No | — | Tratamiento compatible. |
-| id_cabina | INT | FK → Cabina.id_cabina | No | No | — | Cabina compatible. |
-| es_especializada | BIT | — | No | No | 0 | Indica si la cabina es especializada para el tratamiento. |
-| prioridad | INT | — | Sí | No | NULL | Valor propuesto para ordenar opciones válidas. |
-| activo | BIT | — | No | No | 1 | Estado de la relación de compatibilidad. |
-
-**Relaciones:** Tratamiento N:M Cabina mediante TratamientoCabina.
-
-**Notas de diseño:** Restricción propuesta: no repetir la misma combinación id_tratamiento + id_cabina.
-
-## 6.8. Proveedor
+Finalidad: Representa la cuenta de acceso vinculada con ASP.NET Core Identity.
 
-Extiende la cuenta Usuario cuando el usuario presta tratamientos.
+Schema: seguridad. Nombre físico: seguridad.Usuario.
 
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_proveedor | INT | PK | No | Sí | IDENTITY | Identificador interno del proveedor. |
-| id_usuario | INT | FK → Usuario.id_usuario | No | Sí | — | Cuenta asociada al proveedor. |
-| descripcion | TEXT | — | Sí | No | NULL | Información adicional del proveedor. |
-| observaciones | TEXT | — | Sí | No | NULL | Notas administrativas. |
-| activo | BIT | — | No | No | 1 | Indica si puede participar en nuevas asignaciones. |
+| Atributo | Tipo SQL Server | Llave | NULL | UNIQUE | DEFAULT | CHECK o restricción |
+| --- | --- | --- | --- | --- | --- | --- |
+| id_usuario | INT IDENTITY | PK | No | Sí | — | > 0 |
+| id_rol | INT | FK → seguridad.Rol | No | No | — | Rol existente |
+| identity_user_id | NVARCHAR(450) | — | No | Sí | — | Identificador de Identity |
+| nombre | NVARCHAR(100) | — | No | No | — | No vacío |
+| correo | NVARCHAR(256) | — | No | Sí | — | Formato válido |
+| activo | BIT | — | No | No | 1 | 0 o 1 |
+| fecha_registro | DATETIME2 | — | No | No | SYSUTCDATETIME() | — |
 
-**Relaciones:** Usuario 1:0..1 Proveedor; Proveedor 1:N ProveedorTratamiento; Proveedor 1:N IndisponibilidadProveedor; Proveedor 1:N AsignacionProveedor.
+Relaciones y cardinalidades: Rol 1:N Usuario; Usuario 1:0..1 Cliente; Usuario 1:0..1 Proveedor.
 
-**Notas de diseño:** Usuario.activo controla si la cuenta puede acceder al sistema; Proveedor.activo controla si el proveedor puede participar en nuevas asignaciones. Ambos estados se mantienen separados porque representan decisiones distintas.
-
-## 6.9. ProveedorTratamiento
-
-Indica qué tratamientos está autorizado a realizar cada proveedor.
-
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_proveedor_tratamiento | INT | PK | No | Sí | IDENTITY | Identificador de la autorización. |
-| id_proveedor | INT | FK → Proveedor.id_proveedor | No | No | — | Proveedor. |
-| id_tratamiento | INT | FK → Tratamiento.id_tratamiento | No | No | — | Tratamiento que puede realizar. |
-| activo | BIT | — | No | No | 1 | Estado de la autorización. |
-
-**Relaciones:** Proveedor N:M Tratamiento mediante ProveedorTratamiento.
-
-**Notas de diseño:** Restricción propuesta: no repetir la misma combinación id_proveedor + id_tratamiento.
-
-## 6.10. Carrito
+### 4.3. Cliente
 
-Representa la selección temporal del cliente antes de confirmar una reservación.
-
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_carrito | BIGINT | PK | No | Sí | IDENTITY | Identificador del carrito. |
-| id_cliente | INT | FK → Usuario.id_usuario | No | No | — | Cliente propietario. |
-| estado | TEXT | — | No | No | ACTIVO | Estado: ACTIVO, CONFIRMADO o ABANDONADO. |
-| fecha_creacion | DATETIME2 | — | No | No | Fecha/hora actual | Fecha y hora de creación. |
-| fecha_actualizacion | DATETIME2 | — | No | No | Fecha/hora actual | Última modificación. |
-
-**Relaciones:** Usuario 1:N Carrito; Carrito 1:N CarritoTratamiento.
-
-**Notas de diseño:** Agregar tratamientos al carrito no crea una reservación definitiva. Un cliente podrá conservar carritos históricos, pero no deberá tener más de un carrito en estado ACTIVO al mismo tiempo.
-
-## 6.11. CarritoTratamiento
-
-Almacena cada instancia de tratamiento agregada al carrito y su configuración provisional.
-
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_carrito_tratamiento | BIGINT | PK | No | Sí | IDENTITY | Identificador de la instancia. |
-| id_carrito | BIGINT | FK → Carrito.id_carrito | No | No | — | Carrito propietario. |
-| id_tratamiento | INT | FK → Tratamiento.id_tratamiento | No | No | — | Tratamiento agregado. |
-| id_cabina | INT | FK → Cabina.id_cabina | Sí | No | NULL | Cabina seleccionada provisionalmente. |
-| numero_personas | INT | — | Sí | No | NULL | Número de personas para esta instancia. |
-| fecha_hora_inicio | DATETIME2 | — | Sí | No | NULL | Inicio provisional seleccionado. |
-| fecha_hora_fin | DATETIME2 | — | Sí | No | NULL | Fin calculado según duración. |
-| fecha_agregado | DATETIME2 | — | No | No | Fecha/hora actual | Momento en que se agregó al carrito. |
-
-**Relaciones:** Carrito 1:N CarritoTratamiento; Tratamiento 1:N CarritoTratamiento; Cabina 1:N CarritoTratamiento; CarritoTratamiento 1:N BloqueoTemporal.
-
-**Notas de diseño:** El mismo tratamiento puede aparecer varias veces; cada instancia se configura de forma independiente.
-
-## 6.12. BloqueoTemporal
-
-Protege provisionalmente un intervalo de cabina durante el proceso de carrito.
-
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_bloqueo_temporal | BIGINT | PK | No | Sí | IDENTITY | Identificador del bloqueo. |
-| id_carrito_tratamiento | BIGINT | FK → CarritoTratamiento.id_carrito_tratamiento | No | No | — | Elemento del carrito relacionado. |
-| id_cabina | INT | FK → Cabina.id_cabina | No | No | — | Cabina protegida. |
-| fecha_hora_inicio | DATETIME2 | — | No | No | — | Inicio del intervalo. |
-| fecha_hora_fin | DATETIME2 | — | No | No | — | Fin del intervalo. |
-| fecha_creacion | DATETIME2 | — | No | No | Fecha/hora actual | Creación del bloqueo. |
-| fecha_expiracion | DATETIME2 | — | No | No | Calculado: fecha_creacion + ParametroOperativo.duracion_bloqueo_minutos vigente | Vencimiento del bloqueo. Se calcula a partir del parámetro operativo de duración de bloqueo vigente (sección 7, DP-OP-08), cuyo valor aprobado es 15 minutos (RN-98). El campo se calcula mediante el parámetro configurado y no mediante una constante fija en el código. |
-| estado | TEXT | — | No | No | ACTIVO | Estado: ACTIVO, CONFIRMADO, EXPIRADO o LIBERADO. |
-
-**Relaciones:** CarritoTratamiento 1:N BloqueoTemporal; Cabina 1:N BloqueoTemporal.
-
-**Notas de diseño:** Solo un bloqueo vigente debe proteger una misma selección; bloqueos anteriores pueden conservarse como registros expirados o liberados. Esta versión elimina la referencia fija a "Creación + 10 minutos" que traía el documento anterior: RN-31 y RN-98 establecen que la duración del bloqueo temporal es un parámetro operativo configurable cuyo valor aprobado es 15 minutos (DP-OP-08, ver sección 7, ParametroOperativo.duracion_bloqueo_minutos).
-
-## 6.13. Reservacion
-
-Encabezado general de una reservación.
-
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_reservacion | BIGINT | PK | No | Sí | IDENTITY | Identificador de la reservación. |
-| id_cliente | INT | FK → Usuario.id_usuario | No | No | — | Cliente propietario. |
-| creada_por | INT | FK → Usuario.id_usuario | No | No | — | Usuario que generó la reservación; puede ser cliente o recepción. |
-| origen | TEXT | — | No | No | — | Origen, por ejemplo WEB o RECEPCION. |
-| **estado_reservacion** | TEXT | — | No | No | EN_PROCESO | **Campo nuevo en esta versión.** Estado general de la reservación. Valores conceptuales: EN_PROCESO (creada antes del pago/confirmación), CONFIRMADA (recursos confirmados y condición económica cumplida), CANCELADA (cancelación completa) o EXPIRADA (proceso no confirmado cuyo bloqueo expiró y ya no puede continuar sin nueva validación). Ver ciclo formal completo en la sección 4. |
-| fecha_creacion | DATETIME2 | — | No | No | Fecha/hora actual | Fecha y hora de registro. |
-| observaciones | TEXT | — | Sí | No | NULL | Observaciones generales. |
-
-**Relaciones: Usuario 1:N Reservacion; Reservacion 1:N ReservacionTratamiento; Reservacion 1:N Cancelacion; Reservacion 1:0..N Pago; Reservacion 1:N Devolucion.**
-
-**Notas de diseño:** No almacena cabina, proveedor, fecha u hora de cada servicio; esos datos pertenecen a ReservacionTratamiento. estado_reservacion es independiente del estado de cada tratamiento (ReservacionTratamiento.estado): los tratamientos siguen manejando sus propios estados independientes (ver sección 4). No se crea en esta versión una entidad HistorialEstadoReservacion; los cambios relevantes de la reservación quedan trazables de forma indirecta mediante Cancelacion, Pago y HistorialEstadoTratamiento. Si el proyecto requiere trazabilidad explícita de estado_reservacion en el futuro, podrá evaluarse una tabla de historial dedicada, sin que esto sea necesario para el modelo físico actual.
-
-## 6.14. ReservacionTratamiento
-
-Tabla transaccional central: representa cada tratamiento independiente contenido en una reservación.
-
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_reservacion_tratamiento | BIGINT | PK | No | Sí | IDENTITY | Identificador del servicio reservado. |
-| id_reservacion | BIGINT | FK → Reservacion.id_reservacion | No | No | — | Reservación a la que pertenece. |
-| id_tratamiento | INT | FK → Tratamiento.id_tratamiento | No | No | — | Tratamiento reservado. |
-| id_cabina | INT | FK → Cabina.id_cabina | No | No | — | Cabina asignada. |
-| numero_personas | INT | — | No | No | — | Cantidad de personas. |
-| fecha_hora_inicio | DATETIME2 | — | No | No | — | Inicio programado. |
-| fecha_hora_fin_programada | DATETIME2 | — | No | No | — | Fin programado. |
-| fecha_hora_inicio_real | DATETIME2 | — | Sí | No | NULL | Inicio real de atención. |
-| fecha_hora_fin_real | DATETIME2 | — | Sí | No | NULL | Fin real de atención. |
-| estado | TEXT | — | No | No | PENDIENTE | Estado actual: PENDIENTE, CONFIRMADO, EN_ATENCION, COMPLETADO o CANCELADO. Cambio en esta versión: el default pasa de CONFIRMADO a PENDIENTE, consistente con RN-38 y RN-42 (todo tratamiento nace PENDIENTE en una reservación EN_PROCESO). Ciclo formal completo en la sección 4. |
-| fecha_confirmacion | DATETIME2 | — | Sí | No | NULL | Momento de confirmación. |
-| observaciones | TEXT | — | Sí | No | NULL | Notas del servicio reservado. |
-| precio_unitario | DECIMAL(10,2) | — | No | No | — | Precio aplicado al tratamiento al momento de generar la reservación. Se conserva como valor histórico. |
-| importe | DECIMAL(10,2) | — | No | No | — | Importe correspondiente a esta instancia del tratamiento reservado. Conforme a DP-EC-01 (RN-104, sección 11): importe = precio_unitario × numero_personas. |
-
-**Relaciones: Reservacion 1:N ReservacionTratamiento; Tratamiento 1:N ReservacionTratamiento; Cabina 1:N ReservacionTratamiento; ReservacionTratamiento 1:N AsignacionProveedor; ReservacionTratamiento 1:N HistorialEstadoTratamiento; ReservacionTratamiento 1:N Cancelacion; ReservacionTratamiento 1:0..N Devolucion.**
-
-**Notas de diseño: No contiene id_proveedor; la asignación vigente e histórica se administra mediante AsignacionProveedor. Debe evitar traslapes de cabina durante todo el intervalo. El momento de uso del estado PENDIENTE queda resuelto en esta versión (sección 4): toda instancia nace PENDIENTE al crearse la reservación (Reservacion en EN_PROCESO); pasa a CONFIRMADO únicamente cuando el pago es aprobado y la disponibilidad se revalida. precio_unitario conserva el precio aplicado al momento de reservar y no se recalcula automáticamente si cambia Tratamiento.precio_base. importe conserva el valor económico de la instancia reservada.**
-
-## 6.15. AsignacionProveedor
-
-Registra asignaciones iniciales y sustituciones de proveedores, conservando historial.
-
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_asignacion | BIGINT | PK | No | Sí | IDENTITY | Identificador de la asignación. |
-| id_reservacion_tratamiento | BIGINT | FK → ReservacionTratamiento.id_reservacion_tratamiento | No | No | — | Tratamiento reservado. |
-| id_asignacion_anterior | BIGINT | FK → AsignacionProveedor.id_asignacion | Sí | No | NULL | Asignación previa sustituida por este registro; enlaza el historial de sustituciones. |
-| id_proveedor | INT | FK → Proveedor.id_proveedor | No | No | — | Proveedor asignado. |
-| id_usuario_responsable | INT | FK → Usuario.id_usuario | Sí | No | NULL | Usuario que realizó o confirmó el movimiento; puede ser NULL si el proceso fue automático. |
-| tipo_asignacion | TEXT | — | No | No | — | Tipo: INICIAL o SUSTITUCION. |
-| motivo | TEXT | — | Sí | No | NULL | Motivo de la asignación o sustitución. |
-| fecha_asignacion | DATETIME2 | — | No | No | Fecha/hora actual | Inicio de vigencia. |
-| fecha_fin_asignacion | DATETIME2 | — | Sí | No | NULL | Fin de vigencia cuando deja de ser la asignación actual. |
-| estado | TEXT | — | No | No | ACTUAL | Estado: PROPUESTA, ACTUAL, SUSTITUIDA, RECHAZADA o CANCELADA. |
-| aceptado_cliente | BIT | — | Sí | No | NULL | Decisión del cliente ante una sustitución propuesta; NULL mientras no exista decisión. |
-| fecha_decision | DATETIME2 | — | Sí | No | NULL | Fecha/hora de la decisión del cliente. |
-
-**Relaciones:** ReservacionTratamiento 1:N AsignacionProveedor; Proveedor 1:N AsignacionProveedor; Usuario 1:N AsignacionProveedor (responsable); AsignacionProveedor 0..1:N AsignacionProveedor mediante id_asignacion_anterior.
-
-**Notas de diseño:** La asignación inicial corresponde al Administrador general. El proveedor asignado debe estar autorizado y disponible durante todo el intervalo. No debe haber dos asignaciones ACTUAL simultáneas para el mismo ReservacionTratamiento. Cuando TZISCA encuentre un sustituto, la nueva asignación puede registrarse primero como PROPUESTA; si el cliente la acepta pasa a ACTUAL y la anterior a SUSTITUIDA; si la rechaza pasa a RECHAZADA.
-
-## 6.16. BloqueoCabina
-
-Registra bloqueos operativos de una cabina por mantenimiento, limpieza, incidencia, uso interno u otra causa.
-
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_bloqueo_cabina | BIGINT | PK | No | Sí | IDENTITY | Identificador del bloqueo operativo. |
-| id_cabina | INT | FK → Cabina.id_cabina | No | No | — | Cabina afectada. |
-| id_usuario | INT | FK → Usuario.id_usuario | No | No | — | Usuario que creó el bloqueo. |
-| fecha_hora_inicio | DATETIME2 | — | No | No | — | Inicio del bloqueo. |
-| fecha_hora_fin | DATETIME2 | — | No | No | — | Fin del bloqueo. |
-| dia_completo | BIT | — | No | No | 0 | Indica si corresponde al día completo. |
-| motivo | TEXT | — | No | No | — | Motivo del bloqueo. |
-| observaciones | TEXT | — | Sí | No | NULL | Detalles adicionales. |
-| activo | BIT | — | No | No | 1 | Indica si el bloqueo sigue vigente. |
-| fecha_registro | DATETIME2 | — | No | No | Fecha/hora actual | Momento de creación. |
-| fecha_liberacion | DATETIME2 | — | Sí | No | NULL | Momento en que se retiró el bloqueo. |
-
-**Relaciones:** Cabina 1:N BloqueoCabina; Usuario 1:N BloqueoCabina.
-
-**Notas de diseño:** Si existen reservaciones confirmadas en el intervalo, el sistema debe advertir antes de aplicar el bloqueo.
-
-## 6.17. HistorialEstadoCabina
-
-Conserva los cambios del estado operativo de cada cabina.
-
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_historial_cabina | BIGINT | PK | No | Sí | IDENTITY | Identificador del cambio. |
-| id_cabina | INT | FK → Cabina.id_cabina | No | No | — | Cabina afectada. |
-| id_usuario | INT | FK → Usuario.id_usuario | No | No | — | Usuario que realizó el cambio. |
-| estado_anterior | TEXT | — | No | No | — | Estado previo. |
-| estado_nuevo | TEXT | — | No | No | — | Estado posterior. |
-| fecha_cambio | DATETIME2 | — | No | No | Fecha/hora actual | Momento del cambio. |
-| observacion | TEXT | — | Sí | No | NULL | Motivo u observación. |
-
-**Relaciones:** Cabina 1:N HistorialEstadoCabina; Usuario 1:N HistorialEstadoCabina.
-
-## 6.18. IndisponibilidadProveedor
-
-Conserva periodos en que un proveedor no puede recibir nuevas asignaciones.
-
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_indisponibilidad | BIGINT | PK | No | Sí | IDENTITY | Identificador de la indisponibilidad. |
-| id_proveedor | INT | FK → Proveedor.id_proveedor | No | No | — | Proveedor afectado. |
-| fecha_hora_inicio | DATETIME2 | — | No | No | — | Inicio de la indisponibilidad. |
-| fecha_hora_fin | DATETIME2 | — | No | No | — | Fin de la indisponibilidad. |
-| motivo | TEXT | — | Sí | No | NULL | Motivo registrado. |
-| observaciones | TEXT | — | Sí | No | NULL | Información adicional. |
-| fecha_registro | DATETIME2 | — | No | No | Fecha/hora actual | Fecha de registro. |
-| activo | BIT | — | No | No | 1 | Estado administrativo del registro. |
-
-**Relaciones:** Proveedor 1:N IndisponibilidadProveedor.
-
-**Notas de diseño:** La indisponibilidad histórica se conserva aunque el periodo ya haya concluido. Si afecta tratamientos asignados, activa el proceso de búsqueda de sustituto.
-
-## 6.19. HistorialEstadoTratamiento
-
-Registra las transiciones de estado de cada tratamiento reservado.
-
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_historial_estado | BIGINT | PK | No | Sí | IDENTITY | Identificador del movimiento. |
-| id_reservacion_tratamiento | BIGINT | FK → ReservacionTratamiento.id_reservacion_tratamiento | No | No | — | Servicio reservado afectado. |
-| id_usuario | INT | FK → Usuario.id_usuario | Sí | No | NULL | Usuario que realizó el cambio; puede ser NULL en procesos automáticos. |
-| estado_anterior | TEXT | — | Sí | No | NULL | Estado previo. |
-| estado_nuevo | TEXT | — | No | No | — | Nuevo estado. |
-| fecha_cambio | DATETIME2 | — | No | No | Fecha/hora actual | Momento de la transición. |
-| motivo | TEXT | — | Sí | No | NULL | Motivo cuando corresponda. |
-| observaciones | TEXT | — | Sí | No | NULL | Información adicional. |
-
-**Relaciones:** ReservacionTratamiento 1:N HistorialEstadoTratamiento; Usuario 1:N HistorialEstadoTratamiento.
-
-**Notas de diseño: Transiciones formales registradas: PENDIENTE→CONFIRMADO (pago aprobado y disponibilidad revalidada), CONFIRMADO→EN_ATENCION, EN_ATENCION→COMPLETADO, CONFIRMADO→CANCELADO y PENDIENTE→CANCELADO (proceso abandonado o cancelado antes de confirmarse). Esta versión resuelve la ambigüedad que traía el documento anterior sobre el uso de PENDIENTE; el ciclo completo se documenta en la sección 4.**
-
-## 6.20. Cancelacion
-
-Conserva la información propia de cancelaciones individuales o de reservación completa.
-
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_cancelacion | BIGINT | PK | No | Sí | IDENTITY | Identificador de la cancelación. |
-| id_reservacion | BIGINT | FK → Reservacion.id_reservacion | No | No | — | Reservación afectada. |
-| id_reservacion_tratamiento | BIGINT | FK → ReservacionTratamiento.id_reservacion_tratamiento | Sí | No | NULL | Tratamiento específico si la cancelación es individual. |
-| id_usuario | INT | FK → Usuario.id_usuario | No | No | — | Usuario que realizó la cancelación. |
-| tipo_cancelacion | TEXT | — | No | No | — | TRATAMIENTO o RESERVACION_COMPLETA. |
-| motivo | TEXT | — | Sí | No | NULL | Motivo registrado. |
-| fecha_cancelacion | DATETIME2 | — | No | No | Fecha/hora actual | Momento de la cancelación. |
-| observaciones | TEXT | — | Sí | No | NULL | Información adicional. |
-
-**Relaciones:** Reservacion 1:N Cancelacion; ReservacionTratamiento 1:N Cancelacion; Usuario 1:N Cancelacion.
-
-**Notas de diseño:** La cancelación modifica estados y libera recursos, pero no elimina físicamente la reservación ni su historial. Cuando tipo_cancelacion = TRATAMIENTO, id_reservacion_tratamiento debe ser obligatorio y pertenecer a la misma id_reservacion registrada. Cuando tipo_cancelacion = RESERVACION_COMPLETA, id_reservacion_tratamiento debe permanecer NULL.
+Finalidad: Distingue el perfil de cliente de la cuenta Usuario.
 
-## 6.21. Pago
+Schema: seguridad. Nombre físico: seguridad.Cliente.
 
-Representa las operaciones de pago relacionadas con una reservación y permite controlar el importe, método, estado y trazabilidad de cada operación.
+| Atributo | Tipo SQL Server | Llave | NULL | UNIQUE | DEFAULT | CHECK o restricción |
+| --- | --- | --- | --- | --- | --- | --- |
+| id_cliente | INT IDENTITY | PK | No | Sí | — | > 0 |
+| id_usuario | INT | FK → seguridad.Usuario | No | Sí | — | Usuario existente |
+| telefono | NVARCHAR(25) | — | Sí | No | NULL | — |
+| activo | BIT | — | No | No | 1 | 0 o 1 |
+| fecha_registro | DATETIME2 | — | No | No | SYSUTCDATETIME() | — |
 
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_pago | BIGINT | PK | No | Sí | IDENTITY | Identificador único del pago. |
-| id_reservacion | BIGINT | FK → Reservacion.id_reservacion | No | No | — | Reservación relacionada con el pago. |
-| monto | DECIMAL(10,2) | — | No | No | — | Importe asociado a la operación de pago. Debe ser mayor que cero. |
-| moneda | TEXT | — | No | No | MXN | Moneda utilizada para el pago. |
-| metodo_pago | TEXT | — | No | No | — | Método utilizado para realizar el pago. |
-| estado_pago | TEXT | — | No | No | PENDIENTE | Estado actual: PENDIENTE, PROCESANDO, PAGADO, FALLIDO, CANCELADO, REEMBOLSADO o REEMBOLSADO_PARCIALMENTE. Catálogo revisado en esta versión (punto 10 de la corrección) y confirmado sin cambios: es el único catálogo técnico de estados de Pago en todo el modelo (RN-77). |
-| referencia | TEXT | — | Sí | No | NULL | Referencia interna o externa relacionada con la operación. |
-| fecha_creacion | DATETIME2 | — | No | No | Fecha/hora actual | Momento en que se generó el registro del pago. |
-| fecha_pago | DATETIME2 | — | Sí | No | NULL | Fecha y hora en que el pago fue aprobado. |
-| fecha_actualizacion | DATETIME2 | — | No | No | Fecha/hora actual | Última modificación del estado o información del pago. |
-
-**Relaciones: Reservacion 1:0..N Pago; Pago 1:0..N Devolucion; Pago 1:0..N TransaccionPago cuando se implemente integración externa.**
-
-**Notas de diseño: Una reservación puede generar más de un registro de pago cuando existan reintentos o nuevas operaciones. Un pago solo se considera completado cuando estado_pago = PAGADO. Un pago fallido no confirma económicamente la reservación (RN-79). Un rechazo reportado por una pasarela de pago externa se interpreta funcionalmente como estado_pago = FALLIDO; no se agrega RECHAZADO como valor adicional de este catálogo. TZISCA no almacenará números completos de tarjeta, CVV, contraseñas bancarias ni otros datos financieros sensibles. Pago permanece como entidad separada de Reservacion en esta versión, sin cambios.**
-
-## 6.22. Devolucion
-
-Permite registrar devoluciones totales o parciales relacionadas con cancelaciones de reservaciones o tratamientos individuales.
-
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_devolucion | BIGINT | PK | No | Sí | IDENTITY | Identificador único de la devolución. |
-| id_pago | BIGINT | FK → Pago.id_pago | No | No | — | Pago original sobre el que se realiza la devolución. |
-| id_reservacion | BIGINT | FK → Reservacion.id_reservacion | No | No | — | Reservación relacionada. |
-| id_reservacion_tratamiento | BIGINT | FK → ReservacionTratamiento.id_reservacion_tratamiento | Sí | No | NULL | Tratamiento específico cuando la devolución sea parcial. |
-| **tipo_devolucion** | TEXT | — | No | No | — | **Campo nuevo en esta versión.** Valores: PARCIAL o TOTAL. Determina el alcance de la devolución: TOTAL implica id_reservacion_tratamiento en NULL (cancelación completa de la reservación); PARCIAL exige id_reservacion_tratamiento válido, perteneciente a la misma reservación. No se usa como valor de estado_devolucion. |
-| monto | DECIMAL(10,2) | — | No | No | — | Importe a devolver. Debe ser mayor que cero. |
-| motivo | TEXT | — | Sí | No | NULL | Motivo que originó la devolución. |
-| estado_devolucion | TEXT | — | No | No | PENDIENTE | Estado: PENDIENTE, PROCESANDO, COMPLETADA, FALLIDA o CANCELADA. Catálogo técnico único revisado en esta versión (punto 11 de la corrección) y confirmado sin cambios; no se utilizan "PARCIAL" ni "TOTAL" como estado, ya que corresponden al tipo de devolución (tipo_devolucion). |
-| fecha_solicitud | DATETIME2 | — | No | No | Fecha/hora actual | Momento en que se solicitó o registró la devolución. |
-| fecha_procesamiento | DATETIME2 | — | Sí | No | NULL | Momento en que la devolución fue procesada. |
-| id_usuario_responsable | INT | FK → Usuario.id_usuario | Sí | No | NULL | Usuario responsable; puede ser NULL cuando el proceso sea automático. |
-
-**Relaciones:** Pago 1:0..N Devolucion (no todo pago genera devolución); Reservacion 1:N Devolucion; ReservacionTratamiento 1:N Devolucion de forma opcional; Usuario 1:N Devolucion como responsable.
-
-**Notas de diseño:** tipo_devolucion determina el alcance (TOTAL/PARCIAL) y estado_devolucion determina el avance técnico del trámite (PENDIENTE/PROCESANDO/COMPLETADA/FALLIDA/CANCELADA); ambos catálogos son independientes entre sí. En una devolución TOTAL, id_reservacion_tratamiento permanece NULL. En una devolución PARCIAL debe identificar un tratamiento perteneciente a la misma reservación. La suma de devoluciones COMPLETADAS no debe superar el monto efectivamente pagado. Devolucion permanece como entidad separada de Pago en esta versión, sin cambios.
-
-## 6.23. TransaccionPago (opcional)
-
-Registra el historial técnico de las operaciones realizadas contra un proveedor o pasarela externa de pagos. Solo será necesaria cuando exista una integración que requiera conservar intentos y respuestas técnicas.
-
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_transaccion | BIGINT | PK | No | Sí | IDENTITY | Identificador interno de la transacción. |
-| id_pago | BIGINT | FK → Pago.id_pago | No | No | — | Pago al que pertenece la transacción. |
-| referencia_externa | TEXT | — | Sí | No | NULL | Identificador proporcionado por el proveedor externo. |
-| proveedor_pago | TEXT | — | No | No | — | Proveedor o pasarela utilizada. |
-| estado | TEXT | — | No | No | — | Resultado o estado técnico de la transacción. |
-| codigo_respuesta | TEXT | — | Sí | No | NULL | Código técnico devuelto por la pasarela. |
-| fecha | DATETIME2 | — | No | No | Fecha/hora actual | Momento en que ocurrió la transacción. |
-
-**Relaciones: Pago 1:0..N TransaccionPago (únicamente si la entidad opcional se implementa).**
-
-**Notas de diseño:** No se almacenarán números completos de tarjetas, CVV, contraseñas bancarias ni otra información sensible. TransaccionPago conserva únicamente referencias, estados y respuestas técnicas necesarias para trazabilidad. Conforme a DP-TEC-02 (RN-107), Stripe es la pasarela inicial aprobada e interactúa con TZISCA a través de PaymentService; TransaccionPago es el soporte técnico para registrar esas interacciones externas. Se mantiene como entidad opcional en el esquema físico: se incorpora cuando se implemente la integración con Stripe.
-
-# 7. Modelo operativo aprobado (parámetros de agenda)
-
-Reglas de Negocio Horario y Políticas TZISCA (sección 18, DP-OP-01 a DP-OP-08) dejaba pendientes de aprobación los parámetros operativos de agenda del spa. El documento *Decisiones Aprobadas TZISCA* formalizó esos valores (RN-91 a RN-98). Este documento incorpora a continuación los valores aprobados en las estructuras propuestas para SQL Server, sin requerir un nuevo rediseño del esquema.
-
-Estas tres entidades se incorporan al conteo confirmado de 26 entidades (sección 5), dado que sus valores operativos ya cuentan con aprobación del negocio. No tienen llaves foráneas obligatorias hacia las entidades transaccionales; alimentan la validación de disponibilidad (BloqueoTemporal, ReservacionTratamiento) mediante lógica de servicio (AvailabilityService), no mediante integridad referencial física.
-
-## 7.1. ParametroOperativo (valores aprobados)
-
-Parámetros generales vigentes de operación del spa (horario general, intervalo de agenda, anticipación y duración de bloqueo).
-
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_parametro_operativo | INT | PK | No | Sí | IDENTITY | Identificador de la configuración. |
-| hora_apertura_general | TIME | — | No | No | 09:00 | Hora oficial de apertura (DP-OP-01, RN-91). |
-| hora_cierre_general | TIME | — | No | No | 20:00 | Hora límite de operación (DP-OP-02, RN-92). Todo tratamiento debe finalizar a más tardar a esta hora. |
-| intervalo_agenda_minutos | INT | — | No | No | 30 | Granularidad con la que se generan los horarios disponibles para iniciar un tratamiento (DP-OP-05, RN-95). |
-| anticipacion_minima_minutos | INT | — | No | No | 120 | Tiempo mínimo previo al inicio del servicio para poder reservarlo: 2 horas (DP-OP-06, RN-96). |
-| anticipacion_maxima_dias | INT | — | No | No | 60 | Fecha futura máxima hasta la que un cliente puede reservar (DP-OP-07, RN-97). |
-| duracion_bloqueo_minutos | INT | — | No | No | 15 | Vigencia exacta del bloqueo temporal (DP-OP-08, RN-98). Sustituye el valor fijo de 10 minutos eliminado de BloqueoTemporal en la versión anterior; alimenta BloqueoTemporal.fecha_expiracion (sección 6.12). |
-| fecha_vigencia_desde | DATETIME2 | — | No | No | Fecha/hora actual | Inicio de vigencia de esta configuración. |
-| activo | BIT | — | No | No | 1 | Indica si es la configuración vigente. Solo debe existir una fila activo = 1 a la vez. |
+Relaciones y cardinalidades: Usuario 1:0..1 Cliente; Cliente 1:0..1 PreferenciaCliente; Cliente 1:N Carrito; Cliente 1:N Cita.
 
-## 7.2. DiaLaborable (valores aprobados)
+### 4.4. PreferenciaCliente
 
-Días de la semana en que el spa opera y su horario particular cuando difiere del horario general (DP-OP-03, RN-93).
+Finalidad: Guarda preferencias opcionales para recomendaciones.
 
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_dia_laborable | INT | PK | No | Sí | IDENTITY | Identificador del registro. |
-| dia_semana | INT | — | No | Sí | — | Día de la semana (1 = lunes … 7 = domingo). |
-| hora_apertura | TIME | — | Sí | No | NULL | Hora de apertura específica de ese día; si es NULL aplica ParametroOperativo.hora_apertura_general. |
-| hora_cierre | TIME | — | Sí | No | NULL | Hora de cierre específica de ese día; si es NULL aplica ParametroOperativo.hora_cierre_general. |
-| activo | BIT | — | No | No | Según DP-OP-03 | Indica si el spa opera ese día de la semana. Valor aprobado: activo = 1 (verdadero) para los días 1 a 6 (lunes a sábado); activo = 0 (falso) para el día 7 (domingo), no laboral (RN-93). |
+Schema: seguridad. Nombre físico: seguridad.PreferenciaCliente.
 
-**Notas de diseño:** La tabla debe poblarse con siete filas, una por día de la semana, conforme al valor aprobado de activo indicado arriba. Los festivos, cierres extraordinarios y horarios especiales no se registran aquí: se gestionan mediante ExcepcionOperativa (sección 7.3, DP-OP-04) y prevalecen sobre este calendario regular.
+| Atributo | Tipo SQL Server | Llave | NULL | UNIQUE | DEFAULT | CHECK o restricción |
+| --- | --- | --- | --- | --- | --- | --- |
+| id_preferencia | INT IDENTITY | PK | No | Sí | — | > 0 |
+| id_cliente | INT | FK → seguridad.Cliente | No | Sí | — | Cliente existente |
+| tipo_experiencia | NVARCHAR(100) | — | Sí | No | NULL | — |
+| caracteristicas | NVARCHAR(500) | — | Sí | No | NULL | — |
+| observaciones | NVARCHAR(500) | — | Sí | No | NULL | — |
+| fecha_actualizacion | DATETIME2 | — | No | No | SYSUTCDATETIME() | — |
 
-## 7.3. ExcepcionOperativa (soporte aprobado)
+Relaciones y cardinalidades: Cliente 1:0..1 PreferenciaCliente.
 
-Fechas específicas no laborables o con horario especial, como excepción al calendario regular (DP-OP-04, RN-94).
+### 4.5. Tratamiento
 
-| **Campo** | **Tipo** | **Llave** | **Nulo** | **Único** | **Default** | **Descripción / restricción** |
-|----|----|----|----|----|----|----|
-| id_excepcion | INT | PK | No | Sí | IDENTITY | Identificador de la excepción. |
-| fecha | DATE | — | No | Sí | — | Fecha específica de la excepción. |
-| tipo_excepcion | TEXT | — | No | No | — | Valores: NO_LABORABLE o HORARIO_ESPECIAL. Este catálogo de dos valores queda aprobado y es suficiente para representar festivos, cierres extraordinarios y horarios especiales (DP-OP-04). |
-| hora_apertura_especial | TIME | — | Sí | No | NULL | Solo aplica si tipo_excepcion = HORARIO_ESPECIAL. |
-| hora_cierre_especial | TIME | — | Sí | No | NULL | Solo aplica si tipo_excepcion = HORARIO_ESPECIAL. |
-| motivo | TEXT | — | Sí | No | NULL | Motivo de la excepción (feriado, cierre general, mantenimiento, etc.). El catálogo de motivos queda abierto como texto libre; DP-OP-04 aprueba el mecanismo de excepción operativa, no un catálogo cerrado de causas. |
-| fecha_registro | DATETIME2 | — | No | No | Fecha/hora actual | Momento de registro de la excepción. |
+Finalidad: Define cada servicio ofrecido por el spa.
 
-# 8. Relaciones y cardinalidades previstas
+Schema: catalogo. Nombre físico: catalogo.Tratamiento.
 
-| **Entidad A** | **Entidad B** | **Cardinalidad** | **Justificación** |
-|----|----|----|----|
-| Rol | Usuario | 1:N | Un rol puede estar asignado a muchos usuarios; cada usuario tiene un rol actual. |
-| Usuario | PreferenciaCliente | 1:0..1 | El cliente puede no tener preferencias o tener un único perfil de preferencias. |
-| Usuario | Proveedor | 1:0..1 | Solo usuarios con función de proveedor requieren esta extensión. |
-| TipoCabina | Cabina | 1:N | Un tipo clasifica muchas cabinas físicas. |
-| Tratamiento | Cabina | N:M | Se resuelve mediante TratamientoCabina. |
-| Proveedor | Tratamiento | N:M | Se resuelve mediante ProveedorTratamiento. |
-| Usuario | Carrito | 1:N | Un cliente puede generar varios carritos a lo largo del tiempo. |
-| Carrito | CarritoTratamiento | 1:N | Un carrito puede contener varias instancias de tratamientos. |
-| CarritoTratamiento | BloqueoTemporal | 1:N | Una instancia puede generar varios bloqueos históricos, aunque solo uno debe permanecer vigente a la vez. |
-| Usuario | Reservacion | 1:N | Un cliente puede tener muchas reservaciones. |
-| Reservacion | ReservacionTratamiento | 1:N | Cada reservación contiene uno o varios servicios independientes. |
-| Cabina | ReservacionTratamiento | 1:N | Una cabina participa en múltiples servicios en diferentes intervalos. |
-| ReservacionTratamiento | AsignacionProveedor | 1:N | Permite conservar asignación inicial y sustituciones. |
-| Proveedor | AsignacionProveedor | 1:N | Un proveedor puede atender muchas asignaciones en distintos intervalos. |
-| Cabina | BloqueoCabina | 1:N | Una cabina puede tener muchos bloqueos operativos históricos. |
-| Cabina | HistorialEstadoCabina | 1:N | Se conservan todos los cambios de estado operativo. |
-| Proveedor | IndisponibilidadProveedor | 1:N | Un proveedor puede registrar múltiples periodos de indisponibilidad. |
-| ReservacionTratamiento | HistorialEstadoTratamiento | 1:N | Cada servicio conserva sus transiciones de estado. |
-| Reservacion | Cancelacion | 1:N | Una reservación puede tener movimientos de cancelación. |
-| ReservacionTratamiento | Cancelacion | 1:N opcional | Las cancelaciones individuales se relacionan con el tratamiento específico. |
-| AsignacionProveedor | AsignacionProveedor | 0..1:N | Una asignación de sustitución puede enlazar la asignación anterior para conservar trazabilidad explícita del cambio. |
-| Reservacion | Pago | 1:0..N | Una reservación puede generar diferentes operaciones de pago o reintentos. |
-| Pago | Devolucion | **1:0..N** | Un pago puede generar ninguna, una o varias devoluciones parciales o totales; no todo pago debe tener devolución. **Corrección de esta versión:** la cardinalidad se ajustó de 1:N a 1:0..N para reflejar explícitamente que la devolución es opcional. |
-| Reservacion | Devolucion | 1:N | Las devoluciones permanecen relacionadas con la reservación que las originó. |
-| ReservacionTratamiento | Devolucion | 1:0..N | Una devolución parcial puede corresponder a un tratamiento reservado específico. |
-| Usuario | Devolucion | 1:N opcional | Permite identificar al usuario responsable de procesar una devolución. |
-| Pago | TransaccionPago | 1:0..N | Un pago puede generar varios intentos o respuestas técnicas de una pasarela externa. |
+| Atributo | Tipo SQL Server | Llave | NULL | UNIQUE | DEFAULT | CHECK o restricción |
+| --- | --- | --- | --- | --- | --- | --- |
+| id_tratamiento | INT IDENTITY | PK | No | Sí | — | > 0 |
+| nombre | NVARCHAR(120) | — | No | Sí | — | No vacío |
+| descripcion | NVARCHAR(MAX) | — | No | No | — | — |
+| duracion_minutos | INT | — | No | No | — | > 0 |
+| precio_base | DECIMAL(10,2) | — | No | No | — | >= 0; precio por persona |
+| requisitos_cabina | NVARCHAR(500) | — | Sí | No | NULL | — |
+| activo | BIT | — | No | No | 1 | 0 o 1 |
 
-# 9. Reglas estructurales que debe respetar el modelo
+Relaciones y cardinalidades: Tratamiento N:M Proveedor mediante TratamientoProveedor; Paquete N:M Tratamiento mediante PaqueteTratamiento; Tratamiento 1:N Cita.
 
-- Una cabina solo puede seleccionarse para tratamientos con los que tenga una relación activa de compatibilidad.
+### 4.6. Carrito
 
-- La capacidad máxima de la cabina debe ser igual o superior al número de personas del tratamiento reservado.
+Finalidad: Agrupa selecciones temporales del Cliente antes de confirmar Citas.
 
-- La disponibilidad se valida durante todo el intervalo fecha_hora_inicio–fecha_hora_fin_programada.
+Schema: reservas. Nombre físico: reservas.Carrito.
 
-- No deben existir traslapes de uso de una misma cabina entre tratamientos confirmados, bloqueos temporales vigentes y bloqueos operativos.
+| Atributo | Tipo SQL Server | Llave | NULL | UNIQUE | DEFAULT | CHECK o restricción |
+| --- | --- | --- | --- | --- | --- | --- |
+| id_carrito | BIGINT IDENTITY | PK | No | Sí | — | > 0 |
+| id_cliente | INT | FK → seguridad.Cliente | No | No | — | Cliente existente |
+| estado | NVARCHAR(20) | — | No | No | 'ACTIVO' | ACTIVO, CONVERTIDO, ABANDONADO, EXPIRADO |
+| fecha_creacion | DATETIME2 | — | No | No | SYSUTCDATETIME() | — |
+| fecha_actualizacion | DATETIME2 | — | No | No | SYSUTCDATETIME() | — |
 
-- **Los bloqueos temporales tienen una duración determinada por el parámetro operativo vigente (ParametroOperativo.duracion_bloqueo_minutos, sección 7.1; valor aprobado de 15 minutos conforme a DP-OP-08 / RN-98)** y deben liberarse al expirar, cambiar la selección o eliminar el tratamiento del carrito. Esta versión elimina la referencia fija a 10 minutos que traía el documento anterior; el valor de 15 minutos debe implementarse como configuración y no como constante en el código.
+Relaciones y cardinalidades: Cliente 1:N Carrito; Carrito 1:N Cita. El bloqueo de 15 minutos se conserva en Cita.fecha_expiracion_bloqueo.
 
-- Un proveedor solo puede asignarse si está autorizado para realizar el tratamiento y no tiene otra atención o indisponibilidad que se traslape.
+### 4.7. Proveedor
 
-- La asignación inicial del proveedor corresponde al Administrador general; una sustitución debe conservar la asignación anterior, registrar la propuesta y considerar la decisión del cliente antes de quedar como asignación ACTUAL cuando aplique.
+Finalidad: Representa al usuario que puede atender tratamientos.
 
-- **Reservacion.estado_reservacion debe aceptar únicamente EN_PROCESO, CONFIRMADA, CANCELADA o EXPIRADA, con valor por default EN_PROCESO.**
+Schema: operacion. Nombre físico: operacion.Proveedor.
 
-- Los estados de ReservacionTratamiento son PENDIENTE, CONFIRMADO, EN_ATENCION, COMPLETADO y CANCELADO, con valor por default PENDIENTE; su transición a CONFIRMADO depende de la aprobación del pago y de la revalidación de disponibilidad, no de la sola creación de la reservación (ver sección 4).
+| Atributo | Tipo SQL Server | Llave | NULL | UNIQUE | DEFAULT | CHECK o restricción |
+| --- | --- | --- | --- | --- | --- | --- |
+| id_proveedor | INT IDENTITY | PK | No | Sí | — | > 0 |
+| id_usuario | INT | FK → seguridad.Usuario | No | Sí | — | Usuario existente |
+| activo | BIT | — | No | No | 1 | 0 o 1 |
+| fecha_alta | DATETIME2 | — | No | No | SYSUTCDATETIME() | — |
 
-- Una cabina En mantenimiento, Fuera de servicio o Desactivada no se ofrece para nuevas reservaciones.
+Relaciones y cardinalidades: Usuario 1:0..1 Proveedor; Proveedor 1:N Cita; Proveedor N:M Tratamiento mediante TratamientoProveedor.
 
-- Cancelar un tratamiento libera sus recursos pero no elimina físicamente el registro ni los demás tratamientos de la reservación.
+### 4.8. TratamientoProveedor
 
-- Una reservación completa puede cancelarse sin borrar su historial; los tratamientos completados conservan su estado histórico.
+Finalidad: Resuelve la relación N:M entre Tratamiento y Proveedor.
 
-- Los reportes básicos se generan a partir de los datos existentes y no requieren una entidad Reporte en esta versión.
+Schema: operacion. Nombre físico: operacion.TratamientoProveedor.
 
-- Tratamiento.duracion_minutos, Cabina.capacidad_maxima y los campos numero_personas deben ser mayores que cero.
+| Atributo | Tipo SQL Server | Llave | NULL | UNIQUE | DEFAULT | CHECK o restricción |
+| --- | --- | --- | --- | --- | --- | --- |
+| id_tratamiento | INT | PK/FK → catalogo.Tratamiento | No | Sí compuesta | — | Tratamiento existente |
+| id_proveedor | INT | PK/FK → operacion.Proveedor | No | Sí compuesta | — | Proveedor existente |
+| activo | BIT | — | No | No | 1 | 0 o 1 |
 
-- En BloqueoTemporal, BloqueoCabina e IndisponibilidadProveedor, la fecha/hora final debe ser posterior a la fecha/hora inicial; en ReservacionTratamiento, fecha_hora_fin_programada debe ser posterior a fecha_hora_inicio.
+Relaciones y cardinalidades: Tratamiento N:M Proveedor mediante TratamientoProveedor; UNIQUE(id_tratamiento, id_proveedor).
 
-- TratamientoCabina no debe repetir la combinación id_tratamiento + id_cabina; ProveedorTratamiento no debe repetir la combinación id_proveedor + id_tratamiento.
+### 4.9. DisponibilidadProveedor
 
-- Un cliente puede conservar varios carritos históricos, pero solo uno puede permanecer en estado ACTIVO simultáneamente.
+Finalidad: Registra disponibilidad o indisponibilidad operativa por intervalo.
 
-- Los campos de estado, origen y tipo deben aceptar únicamente los valores definidos en este diccionario y en las reglas de negocio correspondientes.
+Schema: operacion. Nombre físico: operacion.DisponibilidadProveedor.
 
-- No debe existir más de una AsignacionProveedor en estado ACTUAL para el mismo ReservacionTratamiento.
+| Atributo | Tipo SQL Server | Llave | NULL | UNIQUE | DEFAULT | CHECK o restricción |
+| --- | --- | --- | --- | --- | --- | --- |
+| id_disponibilidad | BIGINT IDENTITY | PK | No | Sí | — | > 0 |
+| id_proveedor | INT | FK → operacion.Proveedor | No | No | — | Proveedor existente |
+| fecha_hora_inicio | DATETIME2 | — | No | No | — | Menor que fecha_hora_fin |
+| fecha_hora_fin | DATETIME2 | — | No | No | — | Mayor que fecha_hora_inicio |
+| tipo | NVARCHAR(20) | — | No | No | — | DISPONIBLE o NO_DISPONIBLE |
+| motivo | NVARCHAR(250) | — | Sí | No | NULL | — |
+| activo | BIT | — | No | No | 1 | 0 o 1 |
 
-- En una cancelación individual, el tratamiento indicado debe pertenecer a la reservación registrada; en una cancelación completa no se debe indicar un tratamiento específico.
+Relaciones y cardinalidades: Proveedor 1:N DisponibilidadProveedor.
 
-- Todo Pago deberá pertenecer a una Reservacion existente.
+### 4.10. Paquete
 
-- Pago.monto y Devolucion.monto deberán ser mayores que cero.
+Finalidad: Representa un conjunto comercial o funcional de tratamientos.
 
-- Todo importe económico deberá manejarse mediante DECIMAL y no mediante TEXT o tipos enteros.
+Schema: catalogo. Nombre físico: catalogo.Paquete.
 
-- Los estados de Pago y Devolucion deberán aceptar únicamente los valores definidos en este diccionario y las reglas de negocio.
+| Atributo | Tipo SQL Server | Llave | NULL | UNIQUE | DEFAULT | CHECK o restricción |
+| --- | --- | --- | --- | --- | --- | --- |
+| id_paquete | INT IDENTITY | PK | No | Sí | — | > 0 |
+| nombre | NVARCHAR(120) | — | No | Sí | — | No vacío |
+| descripcion | NVARCHAR(MAX) | — | Sí | No | NULL | — |
+| activo | BIT | — | No | No | 1 | 0 o 1 |
 
-- Un pago en estado FALLIDO no deberá considerarse aprobado ni confirmar definitivamente una reservación que requiera pago.
+Relaciones y cardinalidades: Paquete N:M Tratamiento mediante PaqueteTratamiento.
 
-- Los reintentos de pago deberán conservar trazabilidad y no sobrescribir operaciones anteriores.
+### 4.11. PaqueteTratamiento
 
-- Una Devolucion deberá estar relacionada con un Pago existente, pero no todo Pago debe generar una Devolucion.
+Finalidad: Resuelve la relación N:M entre Paquete y Tratamiento.
 
-- La suma de devoluciones COMPLETADAS asociadas a un pago no podrá superar el monto efectivamente pagado.
+Schema: catalogo. Nombre físico: catalogo.PaqueteTratamiento.
 
-- **Devolucion.tipo_devolucion debe ser PARCIAL o TOTAL; TOTAL implica id_reservacion_tratamiento en NULL y PARCIAL exige id_reservacion_tratamiento válido, perteneciente a la misma Reservacion.**
+| Atributo | Tipo SQL Server | Llave | NULL | UNIQUE | DEFAULT | CHECK o restricción |
+| --- | --- | --- | --- | --- | --- | --- |
+| id_paquete | INT | PK/FK → catalogo.Paquete | No | Sí compuesta | — | Paquete existente |
+| id_tratamiento | INT | PK/FK → catalogo.Tratamiento | No | Sí compuesta | — | Tratamiento existente |
 
-- Los registros de Pago y Devolucion no deberán eliminarse físicamente después de procesarse.
+Relaciones y cardinalidades: Paquete N:M Tratamiento mediante PaqueteTratamiento; UNIQUE(id_paquete, id_tratamiento).
 
-- La modificación posterior de Tratamiento.precio_base no deberá alterar ReservacionTratamiento.precio_unitario ni su importe histórico.
+### 4.12. Cabina
 
-- TZISCA no deberá almacenar información bancaria sensible completa.
+Finalidad: Representa cada cabina física y separa habilitación de estado operativo.
 
-- Si se utiliza una pasarela externa, las referencias y respuestas técnicas podrán conservarse mediante TransaccionPago.
+Schema: operacion. Nombre físico: operacion.Cabina.
 
-- Los parámetros operativos de agenda (ParametroOperativo, DiaLaborable, ExcepcionOperativa, sección 7) deberán poblarse con los valores aprobados en *Decisiones Aprobadas TZISCA* (RN-91 a RN-98) como configuración explícita, y no como constantes dispersas en el código; AvailabilityService deberá calcular disponibilidad a partir de esa configuración (Reglas de Negocio Horario y Políticas TZISCA, sección 18.4).
+| Atributo | Tipo SQL Server | Llave | NULL | UNIQUE | DEFAULT | CHECK o restricción |
+| --- | --- | --- | --- | --- | --- | --- |
+| id_cabina | INT IDENTITY | PK | No | Sí | — | > 0 |
+| nombre | NVARCHAR(120) | — | No | Sí | — | No vacío |
+| tipo | NVARCHAR(60) | — | No | No | — | Tipo funcional vigente |
+| descripcion | NVARCHAR(MAX) | — | Sí | No | NULL | — |
+| capacidad_maxima | INT | — | No | No | — | > 0 |
+| caracteristicas | NVARCHAR(MAX) | — | Sí | No | NULL | — |
+| beneficios | NVARCHAR(MAX) | — | Sí | No | NULL | — |
+| prioridad | INT | — | No | No | 0 | >= 0 |
+| activo | BIT | — | No | No | 1 | 0 o 1 |
+| estado | NVARCHAR(20) | — | No | No | 'DISPONIBLE' | DISPONIBLE, OCUPADA, LIMPIEZA, MANTENIMIENTO |
 
-# 10. Decisiones de depuración y normalización
+Relaciones y cardinalidades: Cabina N:M Cita mediante CitaCabina; Cabina 1:N EstadoCabina.
 
-## 10.1 Reservacion y ReservacionTratamiento
+### 4.13. EstadoCabina
 
-Se separó el encabezado de la reservación de los datos específicos de cada tratamiento. Esta decisión evita repetir información general del cliente y permite que una misma reservación contenga servicios con cabinas, horarios, proveedores y estados diferentes.
+Finalidad: Conserva el historial de cambios de Cabina.estado.
 
-## 10.2 Rol y Usuario
+Schema: operacion. Nombre físico: operacion.EstadoCabina.
 
-Los roles no se modelan como tablas de persona independientes. La autenticación y datos comunes permanecen en Usuario, mientras Rol determina permisos.
+| Atributo | Tipo SQL Server | Llave | NULL | UNIQUE | DEFAULT | CHECK o restricción |
+| --- | --- | --- | --- | --- | --- | --- |
+| id_estado_cabina | BIGINT IDENTITY | PK | No | Sí | — | > 0 |
+| id_cabina | INT | FK → operacion.Cabina | No | No | — | Cabina existente |
+| estado_anterior | NVARCHAR(20) | — | Sí | No | NULL | Catálogo de Cabina.estado |
+| estado_nuevo | NVARCHAR(20) | — | No | No | — | Catálogo de Cabina.estado |
+| fecha_cambio | DATETIME2 | — | No | No | SYSUTCDATETIME() | — |
+| id_usuario | INT | FK → seguridad.Usuario | Sí | No | NULL | Responsable o proceso automático |
+| motivo | NVARCHAR(250) | — | Sí | No | NULL | — |
 
-## 10.3 Cabina y ocupación
+Relaciones y cardinalidades: Cabina 1:N EstadoCabina. El trigger operacion.TR_Cabina_CambioEstado registra los cambios.
 
-La ocupación no se guarda como un estado permanente. Se calcula para el intervalo consultado a partir de ReservacionTratamiento, BloqueoTemporal y BloqueoCabina. Por ello, "Ocupada" puede mostrarse en la interfaz como resultado de disponibilidad, pero no forma parte de los valores persistentes de Cabina.estado_operativo. De esta forma una cabina puede estar libre a una hora y ocupada en otra sin generar contradicciones. Este punto se revisó explícitamente en esta versión y se confirma sin cambios.
+### 4.14. Cita
 
-## 10.4 AsignacionProveedor
+Finalidad: Unidad principal de agenda; representa un tratamiento programado para un Cliente.
 
-Se eliminó id_proveedor de ReservacionTratamiento y se trasladó la relación a AsignacionProveedor. Esto permite conocer la asignación actual, registrar propuestas de sustitución y conservar sustituciones sin duplicar datos. La referencia opcional id_asignacion_anterior permite enlazar explícitamente una sustitución con la asignación que reemplaza.
+Schema: reservas. Nombre físico: reservas.Cita.
 
-## 10.5 Carrito y bloqueos
+| Atributo | Tipo SQL Server | Llave | NULL | UNIQUE | DEFAULT | CHECK o restricción |
+| --- | --- | --- | --- | --- | --- | --- |
+| id_cita | BIGINT IDENTITY | PK | No | Sí | — | > 0 |
+| id_cliente | INT | FK → seguridad.Cliente | No | No | — | Cliente existente |
+| id_tratamiento | INT | FK → catalogo.Tratamiento | No | No | — | Tratamiento activo |
+| id_proveedor | INT | FK → operacion.Proveedor | Sí | No | NULL | Proveedor autorizado y disponible |
+| id_carrito | BIGINT | FK → reservas.Carrito | Sí | No | NULL | Carrito origen cuando exista |
+| numero_personas | INT | — | No | No | 1 | > 0 |
+| fecha_hora_inicio | DATETIME2 | — | No | No | — | Inicio en intervalo de 30 minutos |
+| fecha_hora_fin | DATETIME2 | — | No | No | — | Posterior al inicio y a más tardar 20:00 |
+| estado | NVARCHAR(20) | — | No | No | 'PENDIENTE' | PENDIENTE, CONFIRMADA, EN_ATENCION, COMPLETADA, CANCELADA, EXPIRADA |
+| precio_unitario | DECIMAL(10,2) | — | No | No | — | >= 0; copia de precio_base al reservar |
+| importe | DECIMAL(10,2) | — | No | No | — | precio_unitario × numero_personas |
+| fecha_expiracion_bloqueo | DATETIME2 | — | Sí | No | NULL | Creación + 15 minutos mientras PENDIENTE |
+| fecha_creacion | DATETIME2 | — | No | No | SYSUTCDATETIME() | — |
+| fecha_confirmacion | DATETIME2 | — | Sí | No | NULL | — |
+| observaciones | NVARCHAR(500) | — | Sí | No | NULL | — |
 
-El carrito se mantiene separado porque es un estado previo a la reservación definitiva. Los bloqueos temporales protegen recursos durante el proceso, pero no sustituyen una reservación confirmada.
+Relaciones y cardinalidades: Cliente 1:N Cita; Tratamiento 1:N Cita; Proveedor 1:N Cita; Carrito 1:N Cita; Cita N:M Cabina mediante CitaCabina; Cita 1:0..N Pago y Cancelacion.
 
-## 10.6 Historiales específicos
+### 4.15. CitaCabina
 
-Los historiales de cabina, tratamiento y asignaciones se conservan como entidades separadas para registrar quién realizó el cambio, cuándo ocurrió y cuál fue el movimiento.
+Finalidad: Resuelve la relación N:M entre Cita y Cabina.
 
-## 10.7 Reportes y bitácora
+Schema: reservas. Nombre físico: reservas.CitaCabina.
 
-No se crea tabla Reporte porque los indicadores se derivan de la información transaccional. La bitácora general tampoco se incluye en esta versión porque las acciones funcionales relevantes ya tienen entidades de trazabilidad específicas.
+| Atributo | Tipo SQL Server | Llave | NULL | UNIQUE | DEFAULT | CHECK o restricción |
+| --- | --- | --- | --- | --- | --- | --- |
+| id_cita | BIGINT | PK/FK → reservas.Cita | No | Sí compuesta | — | Cita existente |
+| id_cabina | INT | PK/FK → operacion.Cabina | No | Sí compuesta | — | Cabina activa, elegible y sin traslape |
+| fecha_asignacion | DATETIME2 | — | No | No | SYSUTCDATETIME() | — |
+| activo | BIT | — | No | No | 1 | 0 o 1 |
 
-## 10.8 Pagos y reservaciones
+Relaciones y cardinalidades: Cita N:M Cabina mediante CitaCabina; UNIQUE(id_cita, id_cabina).
 
-La información de pago se separa de Reservacion para evitar mezclar el estado operativo con el estado financiero. Una reservación puede generar distintos intentos de pago, por lo que Pago conserva cada operación y su estado correspondiente. Esta versión confirma que Pago se mantiene separado de Reservacion: la incorporación de Reservacion.estado_reservacion no fusiona ambos conceptos, ya que el estado operativo de la reservación y el estado financiero de cada pago siguen siendo independientes y se coordinan únicamente mediante las transiciones descritas en la sección 4.
+### 4.16. Pago
 
-## 10.9 Devoluciones
+Finalidad: Registra cobros asociados a una Cita.
 
-Las devoluciones se modelan mediante una entidad independiente para conservar la trazabilidad de cancelaciones con impacto económico, y se mantienen separadas de Pago en esta versión. Se incorpora el campo tipo_devolucion (PARCIAL/TOTAL) para dejar explícito el alcance de cada devolución sin sobrecargar estado_devolucion, cuyo catálogo técnico se confirma como PENDIENTE, PROCESANDO, COMPLETADA, FALLIDA y CANCELADA (sin usar PARCIAL ni TOTAL como estado). Se corrige además la cardinalidad Pago→Devolucion de 1:N a 1:0..N, dejando explícito que no todo pago genera una devolución.
+Schema: pagos. Nombre físico: pagos.Pago.
 
-## 10.10 Precios históricos
+| Atributo | Tipo SQL Server | Llave | NULL | UNIQUE | DEFAULT | CHECK o restricción |
+| --- | --- | --- | --- | --- | --- | --- |
+| id_pago | BIGINT IDENTITY | PK | No | Sí | — | > 0 |
+| id_cita | BIGINT | FK → reservas.Cita | No | No | — | Cita existente |
+| monto | DECIMAL(10,2) | — | No | No | — | > 0; calculado por backend |
+| moneda | CHAR(3) | — | No | No | 'MXN' | Código ISO 4217 |
+| metodo_pago | NVARCHAR(40) | — | No | No | — | — |
+| estado | NVARCHAR(30) | — | No | No | 'PENDIENTE' | Catálogo RN-77 |
+| referencia | NVARCHAR(150) | — | Sí | No | NULL | — |
+| fecha_creacion | DATETIME2 | — | No | No | SYSUTCDATETIME() | — |
+| fecha_pago | DATETIME2 | — | Sí | No | NULL | — |
 
-El precio actual pertenece al catálogo Tratamiento, mientras que el precio efectivamente aplicado se conserva en ReservacionTratamiento. Esta separación evita que una modificación futura en los precios del catálogo altere la información histórica de reservaciones previamente realizadas. La fórmula con la que se calcula el importe está aprobada conforme a DP-EC-01 (RN-104): precio_base es precio por persona e importe = precio_unitario × numero_personas.
+Relaciones y cardinalidades: Cita 1:0..N Pago; Pago 1:0..N Devolucion y Transaccion.
 
-## 10.11 Transacciones externas
+### 4.17. Cancelacion
 
-TransaccionPago deja de describirse como aplicable "solo si algún día se decide una pasarela": DP-TEC-02 (RN-107) aprobó a Stripe como pasarela inicial de pago, integrada mediante PaymentService para no acoplar la lógica de negocio al proveedor externo. Pago representa el estado financiero dentro de TZISCA y TransaccionPago representa el soporte técnico para registrar las interacciones con el proveedor externo (intentos, referencias y respuestas técnicas). Se conserva como entidad opcional en el esquema físico hasta que se implemente la integración; esta actualización documental no implementa Stripe ni agrega claves, secretos o configuraciones reales.
+Finalidad: Conserva el motivo y momento de cancelar una Cita.
 
-## 10.12 Resolución del uso del estado Pendiente
+Schema: pagos. Nombre físico: pagos.Cancelacion.
 
-La versión anterior de este diccionario dejaba como decisión pendiente "el momento exacto de uso del estado Pendiente en ReservacionTratamiento". Esta versión lo resuelve adoptando el ciclo formal descrito en la sección 4: toda Reservacion nace en EN_PROCESO con sus ReservacionTratamiento en PENDIENTE; cuando el pago es aprobado y la disponibilidad se revalida satisfactoriamente, Reservacion pasa a CONFIRMADA y cada ReservacionTratamiento válido pasa a CONFIRMADO. Esta resolución es consistente con RN-38 a RN-45 y RN-73 a RN-81 de Reglas de Negocio Horario y Políticas TZISCA (documento canónico) y no requiere validación adicional antes de la implementación física.
+| Atributo | Tipo SQL Server | Llave | NULL | UNIQUE | DEFAULT | CHECK o restricción |
+| --- | --- | --- | --- | --- | --- | --- |
+| id_cancelacion | BIGINT IDENTITY | PK | No | Sí | — | > 0 |
+| id_cita | BIGINT | FK → reservas.Cita | No | No | — | Cita existente |
+| id_usuario | INT | FK → seguridad.Usuario | No | No | — | Responsable existente |
+| motivo | NVARCHAR(500) | — | No | No | — | No vacío |
+| atribuible_spa | BIT | — | No | No | 0 | 0 o 1 |
+| fecha_cancelacion | DATETIME2 | — | No | No | SYSUTCDATETIME() | — |
+| observaciones | NVARCHAR(500) | — | Sí | No | NULL | — |
 
-## 10.13 Duración del bloqueo temporal
+Relaciones y cardinalidades: Cita 1:0..N Cancelacion; Cancelacion 1:0..N Devolucion.
 
-La versión anterior fijaba la duración del bloqueo temporal en "Creación + 10 minutos", tanto en BloqueoTemporal.fecha_expiracion como en las reglas estructurales. Esta versión traslada la duración a un parámetro operativo configurable (ParametroOperativo.duracion_bloqueo_minutos, sección 7.1), consistente con RN-31, cuyo valor quedó formalmente aprobado en 15 minutos (DP-OP-08, RN-98). El valor debe implementarse mediante configuración y no como constante fija en el código.
+### 4.18. Devolucion
 
-# 11. Decisiones aprobadas antes del modelo físico
+Finalidad: Registra reembolsos totales, parciales o de monto cero derivados de la política.
 
-Se elimina de esta lista el pendiente sobre el momento de uso del estado Pendiente en ReservacionTratamiento, dado que su ciclo completo queda resuelto en la sección 4 de este documento (ver también 10.12). Las siguientes decisiones, antes pendientes conforme al catálogo de Reglas de Negocio Horario y Políticas TZISCA (documento canónico), quedaron formalmente aprobadas mediante *Decisiones Aprobadas TZISCA* y ya pueden utilizarse para el modelo físico:
+Schema: pagos. Nombre físico: pagos.Devolucion.
 
-| **Código** | **Decisión** | **Estado** | **Impacto en este diccionario** |
-|----|----|----|----|
-| **DP-EC-01** | Fórmula del importe de tratamiento. Tratamiento.precio_base es precio por persona; importe = precio_unitario × numero_personas; sin cargos adicionales en el MVP. | Aprobada (RN-104) | Afecta Tratamiento.precio_base, ReservacionTratamiento.precio_unitario/importe y la validación de Pago.monto (secciones 6.6, 6.14, 6.21). |
-| DP-EC-02 | Tratamiento económico cuando el pago fue aprobado, el bloqueo temporal expiró y la revalidación confirma pérdida de disponibilidad. La Reservacion no se confirma y permanece EN_PROCESO; el Cliente elige entre otra cabina/horario, devolución parcial del tratamiento afectado o cancelación con devolución total. | Aprobada (RN-105) | Afecta la transición Reservacion.estado_reservacion → EXPIRADA cuando ya existe un Pago aprobado, y el tratamiento de los ReservacionTratamiento en PENDIENTE asociados (sección 4.1). |
-| DP-OP-01 a DP-OP-08 | Hora de apertura (09:00), hora de cierre (20:00), días laborales (lunes a sábado), días no laborales/excepciones (domingo, más excepciones operativas), duración de intervalos de agenda (30 min), anticipación mínima (2 h), anticipación máxima (60 días) y duración del bloqueo temporal (15 min). | Aprobada (RN-91 a RN-98) | Valores incorporados a las estructuras de la sección 7 (ParametroOperativo, DiaLaborable, ExcepcionOperativa). |
+| Atributo | Tipo SQL Server | Llave | NULL | UNIQUE | DEFAULT | CHECK o restricción |
+| --- | --- | --- | --- | --- | --- | --- |
+| id_devolucion | BIGINT IDENTITY | PK | No | Sí | — | > 0 |
+| id_pago | BIGINT | FK → pagos.Pago | No | No | — | Pago existente |
+| id_cancelacion | BIGINT | FK → pagos.Cancelacion | No | No | — | Cancelacion existente |
+| tipo | NVARCHAR(20) | — | No | No | — | TOTAL, PARCIAL o SIN_DEVOLUCION |
+| porcentaje | DECIMAL(5,2) | — | No | No | — | 0, 50 o 100 |
+| monto | DECIMAL(10,2) | — | No | No | 0 | >= 0 y no mayor que lo pagado |
+| estado | NVARCHAR(20) | — | No | No | 'PENDIENTE' | PENDIENTE, PROCESANDO, COMPLETADA, FALLIDA, CANCELADA |
+| fecha_solicitud | DATETIME2 | — | No | No | SYSUTCDATETIME() | — |
+| fecha_procesamiento | DATETIME2 | — | Sí | No | NULL | — |
+| id_usuario_responsable | INT | FK → seguridad.Usuario | Sí | No | NULL | — |
 
-DP-OP-09 a DP-OP-13 (tolerancia y políticas de cancelación/devolución, RN-99 a RN-103) y DP-TEC-01 a DP-TEC-03 (autenticación, pasarela de pago, algoritmo de recomendación, RN-106 a RN-108) quedaron igualmente aprobadas en Reglas de Negocio Horario y Políticas TZISCA, pero no tienen impacto directo en la estructura del diccionario de datos y no se repiten aquí.
+Relaciones y cardinalidades: Pago 1:0..N Devolucion; Cancelacion 1:0..N Devolucion.
 
-# 12. Modelo lógico resumido previo al ER
+### 4.19. Transaccion
 
-- Núcleo de usuarios: Rol → Usuario → PreferenciaCliente / Proveedor.
+Finalidad: Conserva intentos y respuestas técnicas de PaymentService y Stripe.
 
-- Núcleo de catálogo: TipoCabina → Cabina; Tratamiento ↔ Cabina mediante TratamientoCabina; Proveedor ↔ Tratamiento mediante ProveedorTratamiento.
+Schema: pagos. Nombre físico: pagos.Transaccion.
 
-- Núcleo de carrito: Usuario → Carrito → CarritoTratamiento → BloqueoTemporal.
+| Atributo | Tipo SQL Server | Llave | NULL | UNIQUE | DEFAULT | CHECK o restricción |
+| --- | --- | --- | --- | --- | --- | --- |
+| id_transaccion | BIGINT IDENTITY | PK | No | Sí | — | > 0 |
+| id_pago | BIGINT | FK → pagos.Pago | No | No | — | Pago existente |
+| referencia_externa | NVARCHAR(150) | — | Sí | No | NULL | — |
+| proveedor_pago | NVARCHAR(40) | — | No | No | 'STRIPE' | Pasarela detrás de PaymentService |
+| tipo | NVARCHAR(30) | — | No | No | — | PAGO, REINTENTO o DEVOLUCION |
+| estado | NVARCHAR(30) | — | No | No | — | Estado técnico |
+| codigo_respuesta | NVARCHAR(100) | — | Sí | No | NULL | Sin datos bancarios sensibles |
+| fecha | DATETIME2 | — | No | No | SYSUTCDATETIME() | — |
 
-- Núcleo de reservación: Usuario → Reservacion (estado_reservacion) → ReservacionTratamiento (estado) → AsignacionProveedor / HistorialEstadoTratamiento / Cancelacion.
+Relaciones y cardinalidades: Pago 1:0..N Transaccion.
 
-- Núcleo operativo: Cabina → BloqueoCabina / HistorialEstadoCabina; Proveedor → IndisponibilidadProveedor.
+## 5. Relaciones y cardinalidades finales
 
-- Núcleo financiero: Reservacion → Pago → Devolucion (tipo_devolucion); ReservacionTratamiento → Devolucion para devoluciones parciales; Pago → TransaccionPago cuando se implemente la integración con Stripe (DP-TEC-02).
+| Entidad A | Entidad B | Cardinalidad | Implementación |
+| --- | --- | --- | --- |
+| Rol | Usuario | 1:N | Cada Usuario pertenece a un Rol. |
+| Usuario | Cliente | 1:0..1 | Cliente extiende la cuenta cuando el usuario es cliente. |
+| Usuario | Proveedor | 1:0..1 | Proveedor extiende la cuenta cuando presta servicios. |
+| Cliente | PreferenciaCliente | 1:0..1 | Las preferencias son opcionales. |
+| Cliente | Carrito | 1:N | Un cliente puede conservar carritos históricos. |
+| Cliente | Cita | 1:N | Una persona cliente puede tener muchas citas. |
+| Tratamiento | Proveedor | N:M | Resuelta por TratamientoProveedor. |
+| Paquete | Tratamiento | N:M | Resuelta por PaqueteTratamiento. |
+| Carrito | Cita | 1:N | Un carrito puede originar varias citas independientes. |
+| Tratamiento | Cita | 1:N | Cada cita programa un tratamiento. |
+| Proveedor | Cita | 1:N | Una cita puede tener un proveedor asignado. |
+| Proveedor | DisponibilidadProveedor | 1:N | Historial por intervalos. |
+| Cita | Cabina | N:M | Resuelta por CitaCabina. |
+| Cabina | EstadoCabina | 1:N | Historial de cambios de estado. |
+| Cita | Pago | 1:0..N | Permite reintentos de cobro. |
+| Cita | Cancelacion | 1:0..N | Conserva intentos o movimientos de cancelación. |
+| Pago | Devolucion | 1:0..N | Un pago puede no tener o tener varias devoluciones. |
+| Cancelacion | Devolucion | 1:0..N | La devolución identifica su causa. |
+| Pago | Transaccion | 1:0..N | Historial técnico de Stripe/PaymentService. |
 
-- Núcleo operativo aprobado (sección 7): ParametroOperativo / DiaLaborable / ExcepcionOperativa — estructura definida y valores aprobados (DP-OP-01 a DP-OP-08, RN-91 a RN-98).
+## 6. Reglas físicas y de integridad
 
-# 13. Resultado de esta etapa
+- Las relaciones N:M se implementan únicamente mediante TratamientoProveedor, PaqueteTratamiento y CitaCabina.
 
-El modelo corregido y confirmado queda compuesto por 25 entidades obligatorias más 1 entidad opcional (TransaccionPago, aplicable únicamente si se integra la pasarela de pago externa Stripe), para un total de **26 entidades**. Respecto al conteo previo de 23, esta actualización incorpora ParametroOperativo, DiaLaborable y ExcepcionOperativa (sección 7) como entidades obligatorias, dado que sus valores ya cuentan con aprobación de negocio; el resto del modelo no cambia de estructura.
+- Cabina.activo indica si el registro está habilitado; Cabina.estado indica DISPONIBLE, OCUPADA, LIMPIEZA o MANTENIMIENTO.
 
-Respecto a la versión anterior del diccionario, esta corrección: (1) actualizó la referencia de casos de uso a CU-01 a CU-43; (2) resolvió el uso ambiguo del estado PENDIENTE mediante el ciclo formal de dos niveles Reservacion.estado_reservacion / ReservacionTratamiento.estado (sección 4); (3) incorporó Reservacion.estado_reservacion; (4) cambió el default de ReservacionTratamiento.estado a PENDIENTE y normalizó su catálogo a PENDIENTE, CONFIRMADO, EN_ATENCION, COMPLETADO y CANCELADO, incluyendo la transición PENDIENTE→CANCELADO; (6)-(7) eliminó la duración fija de 10 minutos de BloqueoTemporal y de las reglas estructurales, trasladándola a un parámetro operativo configurable, hoy aprobado en 15 minutos; (10)-(11) confirmó, sin cambios, los catálogos técnicos únicos de Pago.estado_pago y Devolucion.estado_devolucion; (12) incorporó Devolucion.tipo_devolucion; (13) corrigió las cardinalidades Reservacion→Pago, Pago→Devolucion, ReservacionTratamiento→Devolucion y Pago→TransaccionPago a 1:0..N.
+- operacion.TR_Cabina_CambioEstado debe insertar el cambio en operacion.EstadoCabina cuando Cabina.estado cambie.
 
-Adicionalmente, la sección 7 documenta las tres entidades operativas de agenda (ParametroOperativo, DiaLaborable, ExcepcionOperativa), ya incorporadas al conteo confirmado de 26 entidades porque sus valores fueron aprobados mediante *Decisiones Aprobadas TZISCA* (sección 11): DP-EC-01 (fórmula del importe), DP-EC-02 (tratamiento económico de pago aprobado con disponibilidad perdida) y DP-OP-01 a DP-OP-08 (parámetros operativos de agenda) quedan todas Aprobada. El Diagrama Entidad–Relación deberá representar esta versión actualizada del modelo con sus 26 entidades confirmadas.
+- La lógica existente de cancelaciones y pagos debe verificarse contra los scripts SQL cuando estén disponibles; su nombre de trigger no se inventa en este documento.
 
-# 14. Fuentes documentales del proyecto utilizadas
+- Cita.fecha_expiracion_bloqueo materializa el bloqueo de 15 minutos sin crear una entidad adicional.
 
-- Propuesta de Proyecto de Prácticas Profesionales – Sistema Web de Reservas, Recomendación y Gestión de Cabinas para Spa.
+- Tratamiento.precio_base es por persona; Cita.precio_unitario congela ese precio y Cita.importe multiplica por numero_personas.
 
-- TZISCA – Catálogo de cabinas y servicios.
+- Los horarios deben iniciar cada 30 minutos, respetar 2 horas de anticipación mínima, 60 días máxima y terminar a más tardar a las 20:00 de lunes a sábado.
 
-- TZISCA – Documento de Casos de Uso CU-01 a CU-43.
+- Las tablas de ASP.NET Core Identity son infraestructura de autenticación y no se cuentan como entidades de dominio dentro de las 19.
 
-- TZISCA – Reglas de Negocio Horario y Políticas, RN-01 a RN-108 (documento canónico vigente, con RN-91 a RN-108 incorporadas conforme a *Decisiones Aprobadas TZISCA*; sustituye a la referencia previa "Reglas de Negocio RN-01 a RN-72", correspondiente al documento excluido "Reglas de Negocio TZISCA Actualizadas", conforme al Control documental TZISCA).
+## 7. Schemas y roles SQL
 
-- TZISCA – Diseño de API REST.
+| Schema | Entidades |
+| --- | --- |
+| seguridad | Rol, Usuario, Cliente, PreferenciaCliente |
+| catalogo | Tratamiento, Paquete, PaqueteTratamiento |
+| reservas | Carrito, Cita, CitaCabina |
+| operacion | Proveedor, TratamientoProveedor, DisponibilidadProveedor, Cabina, EstadoCabina |
+| pagos | Pago, Cancelacion, Devolucion, Transaccion |
 
-- TZISCA – Criterios de Aceptación CU-01 a CU-43.
+| Rol SQL | Alcance previsto |
+| --- | --- |
+| rol_cliente | Operaciones propias de cliente a través de la API; sin acceso directo amplio a tablas. |
+| rol_administrador | Administración autorizada de los cinco schemas y consulta de reportes. |
+| rol_recepcionista | Operación de reservas, cabinas y pagos según procedimientos o permisos mínimos. |
+| rol_proveedor | Consulta y actualización limitada a su agenda y disponibilidad. |
 
-- TZISCA – Decisiones Aprobadas TZISCA (cierre de DP-OP-01 a DP-OP-13, DP-EC-01 a DP-EC-02 y DP-TEC-01 a DP-TEC-03).
+## 8. Decisiones vigentes
 
-# 15. Cierre del documento
+RN-91 a RN-108 reemplazan el bloque de decisiones pendientes. Las políticas de horario, agenda, tolerancia, cancelación, precio, autenticación, Stripe y recomendación determinista están aprobadas.
 
-Estado del documento: CERRADO. Esta versión corregida cierra el Diccionario de Datos y Modelo de Datos Depurado de TZISCA conforme a las 12 instrucciones de corrección solicitadas el 08/09/2026 (referencias actualizadas, Reservacion.estado_reservacion, ReservacionTratamiento.estado, BloqueoTemporal.fecha_expiracion, catálogos de Pago y Devolucion, TransaccionPago opcional, DP-EC-01 sin fórmula inventada, configuración operativa pendiente de modelado físico, relaciones y decisiones pendientes). El 09/09/2026 se actualizó para incorporar los valores aprobados por *Decisiones Aprobadas TZISCA*, sin reabrir el resto del documento.
+## 9. Punto pendiente de verificación
 
-El trabajo se realizó sobre la versión vigente del documento: no se reconstruyó desde cero y no se eliminó ninguna entidad válida. Las decisiones DP-EC-01, DP-EC-02, DP-OP-01 a DP-OP-13 y DP-TEC-01 a DP-TEC-03 quedaron formalmente aprobadas mediante *Decisiones Aprobadas TZISCA* y sus valores se incorporaron exactamente como fueron aprobados, sin inventar ni suponer ningún valor adicional.
-
-Con este cierre, el documento queda listo para utilizarse como fuente oficial del Diagrama Entidad–Relación, del modelo físico en SQL Server, del Diseño de API REST y de la Matriz de Trazabilidad de TZISCA.
+No existen scripts SQL en la carpeta local. Antes de implementar el modelo físico se debe contrastar este diccionario con los scripts reales, confirmar el trigger de cancelaciones y pagos que ya exista y validar los GRANT efectivos de los cuatro roles SQL. Esta verificación no cambia el inventario oficial de 19 entidades.
