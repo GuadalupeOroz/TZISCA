@@ -6,6 +6,7 @@
 
 - Fecha de consulta: 9 de septiembre de 2026.
 - Tablero: [FigJam de TZISCA](https://www.figma.com/board/kjk49fziEiQzOM85H3MqRy/Sin-t%C3%ADtulo?node-id=31-3133).
+- Punto de entrada del tablero vigente: [nodo 381:2940](https://www.figma.com/board/kjk49fziEiQzOM85H3MqRy/Sin-t%C3%ADtulo?node-id=381-2940). Es un elemento interno, no el límite de un diagrama completo.
 - Archivo: `kjk49fziEiQzOM85H3MqRy`.
 - Página encontrada: `Page 1`, nodo `0:1`; es la única página reportada por el archivo.
 - El nodo enlazado `31:3133` es el fondo de la zona de diagramas de flujo, no un frame de interfaz.
@@ -41,6 +42,7 @@ Las coordenadas son las regiones del tablero utilizadas para el recorte: `x, y, 
 
 - Se recuperaron cinco diagramas de casos de uso, tres flujos funcionales, cinco secuencias, una arquitectura técnica y un modelo entidad–relación.
 - No se identificaron pantallas de interfaz de Cliente, Administrador, Recepción o Proveedor en la página inspeccionada. En esa primera revisión quedaron pendientes. Posteriormente se incorporaron interfaces desde [otro archivo de diseño de Figma](../vistas/origen-figma.md); consulta su inventario actualizado.
-- No se identificó un diagrama autónomo de estados en FigJam. Los nodos `350:2270` y `350:2274` contienen catálogos de estados dentro del modelo entidad–relación, sin transiciones. Se conserva el [diagrama Mermaid de estados](estados-reservacion.md) existente.
+- No se identificó un diagrama autónomo de estados en FigJam. Los nodos `350:2270` y `350:2274` contienen catálogos de estados dentro del modelo entidad–relación, sin transiciones. Se conserva el [diagrama Mermaid de estados](estados-cita.md) existente.
+- Las PNG locales y sus nodos de referencia proceden de la revisión del 9 de septiembre. Deben contrastarse contra el tablero vigente antes de sustituirse; no se han renombrado ni reemplazado sin una exportación de la composición completa.
 - Las imágenes se conservan como fuente visual. Su incorporación no valida ni modifica las decisiones funcionales: las políticas operativas, la autenticación y la pasarela de pago ya fueron aprobadas mediante *Decisiones Aprobadas TZISCA* (RN-91 a RN-108), pero esta revisión de origen de Figma no verifica esa concordancia. Para implementar, contrastar con [API REST](../api/diseno-api-rest.md), [casos de uso](../casos-de-uso/casos-de-uso.md), [reglas de negocio](../reglas-negocio/reglas-negocio.md) y [diccionario de datos](../modelo-datos/diccionario-datos.md).
 - Pendiente revisar la concordancia funcional completa entre el FigJam y los contratos documentales. Esta tarea integra y organiza las imágenes sin corregir el tablero ni sus relaciones.

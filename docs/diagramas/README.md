@@ -9,9 +9,9 @@ Diagramas del diseño previsto de TZISCA: Mermaid existentes y exportaciones rea
 | Diagrama | Tipo | Archivo |
 |---|---|---|
 | Arquitectura | Mermaid | [arquitectura.md](arquitectura.md) |
-| Flujo de reservación | Mermaid | [flujo-reservacion.md](flujo-reservacion.md) |
+| Flujo de citas | Mermaid | [flujo-citas.md](flujo-citas.md) |
 | Módulos de la API | Mermaid | [modulos-api.md](modulos-api.md) |
-| Estados de reservación y tratamientos | Mermaid | [estados-reservacion.md](estados-reservacion.md) |
+| Estados de cita | Mermaid | [estados-cita.md](estados-cita.md) |
 | Casos de uso general | UML — casos de uso | [casos-uso-general.png](casos-uso-general.png) |
 | Casos de uso — Cliente | UML — casos de uso | [casos-uso-cliente.png](casos-uso-cliente.png) |
 | Casos de uso — Administrador general | UML — casos de uso | [casos-uso-administrador.png](casos-uso-administrador.png) |

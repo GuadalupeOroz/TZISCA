@@ -390,7 +390,7 @@ CA-23.9 — Pago fallido o cancelado. Si el Pago queda Fallido o Cancelado, TZIS
 
 CA-23.10 — Pago aprobado. Dado un Pago Pagado, cuando CU-42 devuelva el control a CU-23, entonces TZISCA deberá revalidar la disponibilidad antes de confirmar.
 
-CA-23.11 — Confirmación manual. Solo si el Pago está Pagado y la revalidación resulta satisfactoria, la Cita deberá confirmarse y sus Cita deberán pasar de PENDIENTE a CONFIRMADO.
+CA-23.11 — Confirmación manual. Solo si el Pago está Pagado y la revalidación resulta satisfactoria, la Cita deberá pasar de PENDIENTE a CONFIRMADA.
 
 CA-23.12 — Permanencia en proceso. Mientras no se cumplan las condiciones económicas y de disponibilidad, la Cita manual podrá permanecer PENDIENTE y sus tratamientos en PENDIENTE.
 

@@ -639,7 +639,7 @@ Objetivo: Permitir que el Cliente cree una cita en proceso desde el carrito y la
 
 10. Si la disponibilidad continúa válida, TZISCA confirma definitivamente la Cita.
 
-11. Cada Cita confirmado pasa de PENDIENTE a CONFIRMADA.
+11. Cada Cita confirmada pasa de PENDIENTE a CONFIRMADA.
 
 12. Los bloqueos temporales correspondientes se convierten en ocupaciones reales.
 

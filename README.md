@@ -8,7 +8,7 @@
 
 Sistema Web de Reservas, Recomendación y Gestión de Cabinas para Spa.
 
-TZISCA centraliza el catálogo de tratamientos, cabinas, disponibilidad, reservaciones, proveedores, pagos, devoluciones y operación general del spa en una sola plataforma.
+TZISCA centraliza el catálogo de tratamientos, cabinas, disponibilidad, citas, proveedores, pagos, devoluciones y operación general del spa en una sola plataforma.
 
 ---
 
@@ -39,10 +39,10 @@ Alcance documentado, pendiente de implementación.
 - Catálogo de cabinas.
 - Compatibilidad tratamiento-cabina.
 - Recomendación de cabinas.
-- Carrito de reservación.
+- Carrito de citas.
 - Consulta de disponibilidad.
 - Bloqueos temporales.
-- Reservaciones.
+- Citas.
 - Gestión de proveedores.
 - Asignación y sustitución de proveedores.
 - Pagos.
@@ -57,18 +57,18 @@ Alcance documentado, pendiente de implementación.
 
 | Rol | Función principal |
 |---|---|
-| Cliente | Consulta servicios, gestiona carrito, reserva, paga y consulta sus reservaciones |
+| Cliente | Consulta servicios, gestiona carrito, agenda, paga y consulta sus citas |
 | Administrador general | Administra usuarios, tratamientos, cabinas, proveedores, pagos, devoluciones y reportes |
-| Recepción y cabinas | Gestiona agenda, disponibilidad, reservaciones manuales, bloqueos y cancelaciones |
+| Recepción y cabinas | Gestiona agenda, disponibilidad, citas manuales, bloqueos y cancelaciones |
 | Proveedor de tratamiento | Consulta su agenda, registra indisponibilidad e inicia o completa atenciones |
 
 ---
 
-## Flujo principal de reservación
+## Flujo principal de citas
 
-Login → Catálogo → Detalle → Carrito → Número de personas → Recomendación de cabina → Selección de cabina → Fecha y hora → Validación de disponibilidad → Bloqueo temporal → Resumen → Reservación `EN_PROCESO` → Pago → Revalidación → Confirmación → Mis reservaciones
+Login → Catálogo → Detalle → Carrito → Número de personas → Recomendación de cabina → Selección de cabina → Fecha y hora → Validación de disponibilidad → Bloqueo temporal → Resumen → Cita `PENDIENTE` → Pago → Revalidación → Confirmación → Mis citas
 
-[Ver flujo en Mermaid](docs/diagramas/flujo-reservacion.md). La creación deja los tratamientos en `PENDIENTE`; la confirmación requiere el pago válido cuando corresponda y la disponibilidad revalidada.
+[Ver flujo en Mermaid](docs/diagramas/flujo-citas.md). Cada tratamiento seleccionado genera una Cita `PENDIENTE`; la confirmación requiere el pago válido cuando corresponda y la disponibilidad revalidada.
 
 ---
 
@@ -250,9 +250,9 @@ Muestra representativa. Los quince diagramas exportados del FigJam se conservan 
 ## Diagramas
 
 - [Arquitectura](docs/diagramas/arquitectura.md)
-- [Flujo de reservación](docs/diagramas/flujo-reservacion.md)
+- [Flujo de citas](docs/diagramas/flujo-citas.md)
 - [Módulos de la API](docs/diagramas/modulos-api.md)
-- [Estados de reservación y tratamientos](docs/diagramas/estados-reservacion.md)
+- [Estados de cita](docs/diagramas/estados-cita.md)
 
 ---
 

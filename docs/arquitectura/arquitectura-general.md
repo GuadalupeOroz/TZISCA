@@ -40,7 +40,7 @@ El frontend de TZISCA será desarrollado con Angular y será responsable de las 
 - Recepción y cabinas.
 - Proveedor de tratamiento.
 
-Desde el frontend se realizarán operaciones como consulta de tratamientos, selección de cabinas, carrito, disponibilidad, reservaciones, pagos, agendas y funciones administrativas.
+Desde el frontend se realizarán operaciones como consulta de tratamientos, selección de cabinas, carrito, disponibilidad, citas, pagos, agendas y funciones administrativas.
 
 La lógica crítica del sistema no deberá depender únicamente del frontend.
 
@@ -52,13 +52,12 @@ Será responsable de:
 
 - Exponer la API REST.
 - Aplicar reglas de negocio.
-- Gestionar autenticación y autorización mediante ASP.NET Core Identity, emitiendo JWT como access token y un refresh token seguro para renovación de sesión, con autorización por rol y permisos (DP-TEC-01, RN-106).
+- Gestionar autenticación y autorización mediante ASP.NET Core Identity, emitiendo JWT como access token y un refresh token seguro para renovación de sesión, con autorización por rol y permisos (RN-107).
 - Validar disponibilidad mediante AvailabilityService, con los parámetros operativos aprobados (horario, días laborables, intervalos, anticipación y bloqueo temporal).
 - Administrar bloqueos temporales.
-- Gestionar reservaciones.
-- Gestionar proveedores y asignaciones, incluyendo la recomendación determinista de cabinas mediante RecommendationService (DP-TEC-03, RN-108).
-- Gestionar pagos mediante PaymentService, la abstracción interna que integra Stripe como pasarela inicial aprobada sin acoplar la lógica de negocio al proveedor externo (DP-TEC-02, RN-107).
-- Gestionar devoluciones mediante RefundService, aplicando las políticas de cancelación y devolución aprobadas (DP-OP-09 a DP-OP-13, RN-99 a RN-103).
+- Gestionar Citas y sus relaciones CitaCabina.
+- Gestionar proveedores y su disponibilidad, incluyendo la recomendación determinista de cabinas mediante RecommendationService (RN-108).
+- Gestionar pagos y devoluciones mediante PaymentService, la abstracción interna que integra Stripe como pasarela inicial aprobada sin acoplar la lógica de negocio al proveedor externo (RN-73 a RN-90, RN-107).
 - Mantener trazabilidad.
 - Acceder a la base de datos.
 
@@ -66,12 +65,11 @@ Será responsable de:
 
 Conforme a *Decisiones Aprobadas TZISCA*, el backend organiza la lógica crítica en los siguientes servicios internos. Esta sección es documental: no convierte estos servicios en código todavía.
 
-- **ASP.NET Core Identity** — gestión de usuarios y credenciales (DP-TEC-01).
-- **JWT** — access token emitido tras la autenticación, con refresh token seguro para renovación de sesión (DP-TEC-01, RN-106).
-- **AvailabilityService** — cálculo de disponibilidad con los parámetros operativos aprobados: apertura 09:00, cierre 20:00, días laborables lunes a sábado, domingo no laboral con excepciones operativas, intervalos de 30 minutos, anticipación mínima de 2 horas y máxima de 60 días, y bloqueo temporal de 15 minutos (DP-OP-01 a DP-OP-08, RN-91 a RN-98).
-- **RefundService** — determinación de devoluciones conforme a la política aprobada de tolerancia, cancelación y devolución (DP-OP-09 a DP-OP-13, RN-99 a RN-103).
-- **PaymentService** — abstracción interna de pagos que integra **Stripe** como pasarela inicial aprobada, sin acoplar la lógica de negocio al proveedor externo (DP-TEC-02, RN-107).
-- **RecommendationService** — algoritmo determinista de recomendación de cabinas (DP-TEC-03, RN-108).
+- **ASP.NET Core Identity** — gestión de usuarios y credenciales.
+- **JWT** — access token emitido tras la autenticación, con refresh token seguro para renovación de sesión (RN-107).
+- **AvailabilityService** — cálculo de disponibilidad con apertura 09:00, cierre 20:00, días laborables de lunes a sábado, intervalos de 30 minutos, anticipación mínima de 2 horas y máxima de 60 días, y bloqueo temporal de 15 minutos (RN-91 a RN-99).
+- **PaymentService** — gestión de pagos y devoluciones; integra **Stripe** sin acoplar la lógica de negocio al proveedor externo (RN-73 a RN-90, RN-107).
+- **RecommendationService** — algoritmo determinista de recomendación de cabinas (RN-108).
 
 ---
 
@@ -89,15 +87,15 @@ Los módulos funcionales definidos para TZISCA son:
 
 - `/auth`
 - `/users`
+- `/clients`
 - `/treatments`
+- `/packages`
 - `/cabins`
 - `/recommendations`
 - `/availability`
 - `/cart`
-- `/temporary-blocks`
-- `/reservations`
+- `/appointments`
 - `/providers`
-- `/provider-assignments`
 - `/payments`
 - `/refunds`
 - `/reports`
@@ -113,27 +111,11 @@ TZISCA utilizará SQL Server como sistema de persistencia.
 
 La base de datos almacenará información relacionada con:
 
-- Roles.
-- Usuarios.
-- Preferencias del cliente.
-- Tipos de cabina.
-- Cabinas.
-- Tratamientos.
-- Compatibilidades tratamiento-cabina.
-- Proveedores.
-- Compatibilidades proveedor-tratamiento.
-- Carritos.
-- Elementos del carrito.
-- Bloqueos temporales.
-- Reservaciones.
-- Tratamientos reservados.
-- Asignaciones de proveedor.
-- Bloqueos operativos de cabina.
-- Historiales de estado.
-- Indisponibilidades de proveedor.
-- Cancelaciones.
-- Pagos.
-- Devoluciones.
+- seguridad: Rol, Usuario, Cliente y PreferenciaCliente.
+- catalogo: Tratamiento, Paquete y PaqueteTratamiento.
+- reservas: Carrito, Cita y CitaCabina.
+- operacion: Proveedor, TratamientoProveedor, DisponibilidadProveedor, Cabina y EstadoCabina.
+- pagos: Pago, Cancelacion, Devolucion y Transaccion.
 
 
 ---
@@ -187,37 +169,37 @@ El backend deberá considerar:
 - Compatibilidad tratamiento-cabina.
 - Capacidad requerida.
 - Estado operativo de la cabina.
-- Reservaciones existentes.
+- Citas existentes.
 - Bloqueos temporales.
 - Bloqueos operativos.
 - Periodos fuera de servicio.
 - Parámetros operativos aprobados.
 
-AvailabilityService deberá usar los valores aprobados de horario de apertura (09:00), cierre (20:00), días laborables (lunes a sábado, domingo no laboral con excepciones operativas), intervalos de agenda (30 minutos), anticipación mínima (2 horas), anticipación máxima (60 días) y duración del bloqueo temporal (15 minutos) como configuración (DP-OP-01 a DP-OP-08, RN-91 a RN-98), y no como valores fijos asumidos directamente en el código.
+AvailabilityService deberá usar los valores aprobados de horario de apertura (09:00), cierre (20:00), días laborables (lunes a sábado, domingo no laboral con excepciones operativas), intervalos de agenda (30 minutos), anticipación mínima (2 horas), anticipación máxima (60 días) y duración del bloqueo temporal (15 minutos) como configuración (RN-91 a RN-99), y no como valores fijos asumidos directamente en el código.
 
 ---
 
 ## Pagos
 
-Los pagos se gestionarán de forma separada de la reservación, a través de PaymentService.
+Los pagos se gestionarán por medio de PaymentService y se asociarán a una Cita.
 
-Una reservación podrá relacionarse con uno o más registros de pago para conservar intentos, estados, referencias, fechas, métodos de pago y trazabilidad.
+Una Cita podrá relacionarse con uno o más registros de Pago para conservar intentos, estados, referencias, fechas, métodos de pago y trazabilidad.
 
-La confirmación definitiva de una reservación que requiera pago dependerá de que el pago correspondiente haya sido aprobado. El importe se calcula conforme a la fórmula aprobada (DP-EC-01, RN-104): precio_base por persona, importe = precio_unitario × numero_personas.
+La confirmación definitiva de una Cita que requiera pago dependerá de que el pago correspondiente haya sido aprobado. El importe se calcula conforme a RN-106: precio_base por persona, importe = precio_unitario × numero_personas.
 
-Stripe es la pasarela inicial aprobada (DP-TEC-02, RN-107) y se integrará detrás de PaymentService, sin acoplar la lógica de negocio al proveedor externo. Pago conserva el estado financiero interno de TZISCA; TransaccionPago registra la interacción técnica con Stripe cuando se implemente. Esta arquitectura es documental y no implementa la integración con Stripe todavía.
+Stripe es la pasarela inicial aprobada y se integra detrás de PaymentService, sin acoplar la lógica de negocio al proveedor externo (RN-107). Pago conserva el estado financiero interno de TZISCA; Transaccion registra la interacción técnica con Stripe cuando se implemente. Esta arquitectura es documental y no implementa la integración con Stripe todavía.
 
 TZISCA no deberá almacenar datos bancarios sensibles completos.
 
-Si un pago queda `PAGADO` pero la revalidación de disponibilidad detecta que se perdió, la Reservacion no se confirma y permanece `EN_PROCESO` conforme a DP-EC-02 (RN-105): el Cliente puede seleccionar otra cabina u horario, conservar los tratamientos válidos con devolución parcial del afectado, o cancelar la operación con devolución total.
+Si un Pago queda `PAGADO` pero la revalidación de disponibilidad detecta que se perdió, la Cita no se confirma y se inicia la devolución aplicable, conforme a RN-81.
 
 ---
 
 ## Devoluciones
 
-Las devoluciones se manejarán como operaciones independientes relacionadas con un pago, a través de RefundService.
+Las devoluciones se manejarán como operaciones independientes relacionadas con un Pago y una Cancelacion, mediante PaymentService.
 
-La lógica de devolución deberá consultar la política de devolución aprobada por tramos de anticipación antes de determinar si corresponde un reembolso y cuál será el importe (DP-OP-11/DP-OP-12, RN-101 a RN-103): 100% con 24 horas o más de anticipación, 50% entre 6 y menos de 24 horas, sin devolución con menos de 6 horas, y 100% cuando la cancelación es atribuible al spa. No hay devolución por inasistencia, servicio iniciado o servicio completado.
+La lógica de devolución deberá consultar la política aprobada por tramos de anticipación antes de determinar si corresponde un reembolso y cuál será el importe (RN-101 a RN-105): 100 % con 24 horas o más de anticipación, 50 % entre 6 y menos de 24 horas, sin devolución con menos de 6 horas y 100 % cuando la cancelación es atribuible al spa. No hay devolución por inasistencia, servicio iniciado o servicio completado.
 
 ---
 
@@ -251,9 +233,9 @@ La lógica de devolución deberá consultar la política de devolución aprobada
 
 ---
 
-## Flujo de reservación y confirmación
+## Flujo de citas y confirmación
 
-El flujo de reservación de TZISCA separa la creación previa de la reservación de su confirmación definitiva.
+El flujo de TZISCA separa la creación de Citas desde el Carrito de su confirmación definitiva.
 
 1. El Cliente inicia sesión.
 2. Consulta el catálogo.
@@ -266,16 +248,15 @@ El flujo de reservación de TZISCA separa la creación previa de la reservación
 9. TZISCA valida disponibilidad.
 10. El sistema crea un bloqueo temporal.
 11. El Cliente revisa el resumen.
-12. TZISCA crea la `Reservacion` en estado `EN_PROCESO`.
-13. Cada `ReservacionTratamiento` queda inicialmente en estado `PENDIENTE`.
+12. TZISCA crea una Cita por cada tratamiento seleccionado, en estado `PENDIENTE`.
+13. Cada Cita conserva su relación CitaCabina y su fecha de expiración de bloqueo.
 14. El sistema calcula el importe conforme a la política aprobada.
 15. El Cliente realiza el pago.
 16. TZISCA valida el resultado del pago.
 17. Si el pago queda `PAGADO`, el sistema vuelve a validar la disponibilidad.
-18. Si la disponibilidad continúa válida, la reservación se confirma.
-19. Los `ReservacionTratamiento` válidos pasan de `PENDIENTE` a `CONFIRMADO`.
-20. Los bloqueos temporales se convierten en ocupaciones reales.
-21. El Cliente puede consultar la reservación y el estado del pago.
+18. Si la disponibilidad continúa válida, cada Cita aplicable pasa a `CONFIRMADA`.
+19. El bloqueo temporal deja de estar vigente al confirmarse o expirar la Cita.
+20. El Cliente puede consultar sus Citas y el estado de cada Pago.
 
 Un pago `FALLIDO`, `CANCELADO` o rechazado no deberá producir la confirmación definitiva.
 
@@ -284,7 +265,7 @@ Un pago `FALLIDO`, `CANCELADO` o rechazado no deberá producir la confirmación 
 
 ## Decisiones aprobadas
 
-Los parámetros funcionales, económicos y técnicos que antes estaban pendientes fueron aprobados mediante *Decisiones Aprobadas TZISCA* y se convirtieron en las reglas de negocio RN-91 a RN-108. Deben implementarse como configuración (AvailabilityService, RefundService) y no como constantes dispersas en el código.
+Los parámetros funcionales, económicos y técnicos están establecidos en las reglas RN-91 a RN-108. Deben implementarse como configuración y no como constantes dispersas en el código.
 
 ### Parámetros operativos aprobados
 
@@ -305,8 +286,8 @@ Los parámetros funcionales, económicos y técnicos que antes estaban pendiente
 
 - Fórmula del importe de un tratamiento: `precio_base` es precio por persona.
 - El importe depende del número de personas: `importe = precio_unitario × numero_personas`.
-- El total de la reservación es la suma de los importes de sus tratamientos; el MVP no aplica cargos adicionales.
-- Pago aprobado con disponibilidad perdida: la Reservacion no se confirma y permanece `EN_PROCESO`; el Cliente elige entre otra cabina/horario, devolución parcial del tratamiento afectado o cancelación con devolución total, sin que TZISCA presuma ninguna acción automáticamente.
+- El total de un Carrito es la suma de los importes de las Citas que origine; el MVP no aplica cargos adicionales.
+- Pago aprobado con disponibilidad perdida: la Cita no se confirma y se inicia la devolución aplicable, conforme a RN-81.
 
 ### Decisiones técnicas aprobadas
 
@@ -314,5 +295,4 @@ Los parámetros funcionales, económicos y técnicos que antes estaban pendiente
 - Pasarela de pago: Stripe, integrada detrás de PaymentService.
 - Algoritmo determinista de recomendación de cabinas: compatibilidad, capacidad, estado operativo, disponibilidad, preferencias, especialización, prioridad configurada e id_cabina ascendente como desempate final.
 
-Estas decisiones ya pueden utilizarse para la implementación de AvailabilityService, RefundService, PaymentService, la autenticación y RecommendationService.
-
+Estas decisiones ya pueden utilizarse para la implementación de AvailabilityService, PaymentService, la autenticación y RecommendationService.
