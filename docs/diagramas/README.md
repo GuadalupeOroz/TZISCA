@@ -27,6 +27,7 @@ Diagramas del diseño previsto de TZISCA: Mermaid existentes y exportaciones rea
 | Cancelación y devolución | Secuencia | [secuencia-cancelacion-devolucion.png](secuencia-cancelacion-devolucion.png) |
 | Arquitectura técnica de TZISCA | Arquitectura | [arquitectura-tecnica-figma.png](arquitectura-tecnica-figma.png) |
 | Diagrama Entidad–Relación | Modelo de datos | [modelo-entidad-relacion-figma.png](modelo-entidad-relacion-figma.png) |
+| Diagrama Entidad–Relación — Notación Chen | Modelo de datos | [modelo-entidad-relacion-chen-figjam.png](modelo-entidad-relacion-chen-figjam.png) |
 
 [Origen, nodos y pendientes de extracción](origen-figma.md).
 
@@ -123,3 +124,11 @@ Las miniaturas conservan la proporción. Abre cada imagen para consultar el diag
 <a href="modelo-entidad-relacion-figma.png"><img src="../screenshots/thumbs/modelo-entidad-relacion-figma.png" width="240" alt="Diagrama Entidad–Relación"></a>
 
 [Imagen completa](modelo-entidad-relacion-figma.png) · [Nodo de referencia en FigJam](https://www.figma.com/board/kjk49fziEiQzOM85H3MqRy/Sin-t%C3%ADtulo?node-id=192-929)
+
+### Diagrama Entidad–Relación — Notación Chen
+
+<a href="modelo-entidad-relacion-chen-figjam.png"><img src="../screenshots/thumbs/modelo-entidad-relacion-chen-figjam.png" width="240" alt="Diagrama Entidad–Relación — Notación Chen"></a>
+
+[Imagen completa](modelo-entidad-relacion-chen-figjam.png) · [Sección de FigJam](https://www.figma.com/board/kjk49fziEiQzOM85H3MqRy/Sin-t%C3%ADtulo?node-id=381-2299)
+
+> Esta exportación se conserva como un segundo diagrama visual. Contiene elementos que no coinciden con el modelo oficial de 19 entidades, por lo que no sustituye al modelo canónico documentado en el [diccionario de datos](../modelo-datos/diccionario-datos.md).

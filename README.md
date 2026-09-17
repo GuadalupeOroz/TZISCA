@@ -248,6 +248,12 @@ Muestra representativa. Los quince diagramas exportados del FigJam se conservan 
 <br>Entity–Relationship Diagram
 </a>
 </td>
+<td align="center">
+<a href="docs/diagramas/modelo-entidad-relacion-chen-figjam.png">
+<img src="docs/screenshots/thumbs/modelo-entidad-relacion-chen-figjam.png" width="240" alt="Entity–Relationship Diagram — Chen Notation">
+<br>Entity–Relationship Diagram — Chen Notation
+</a>
+</td>
 </tr>
 </table>
 

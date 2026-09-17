@@ -37,6 +37,7 @@ Las coordenadas son las regiones del tablero utilizadas para el recorte: `x, y, 
 | Cancelación y devolución | [299:1994](https://www.figma.com/board/kjk49fziEiQzOM85H3MqRy/Sin-t%C3%ADtulo?node-id=299-1994) | `12866.0, 14676.0, 1980.0, 1640.0` | [secuencia-cancelacion-devolucion.png](secuencia-cancelacion-devolucion.png) |
 | Arquitectura técnica de TZISCA | [302:2088](https://www.figma.com/board/kjk49fziEiQzOM85H3MqRy/Sin-t%C3%ADtulo?node-id=302-2088) | `11168.0, 8749.0, 6802.0, 3166.0` | [arquitectura-tecnica-figma.png](arquitectura-tecnica-figma.png) |
 | Diagrama Entidad–Relación | [192:929](https://www.figma.com/board/kjk49fziEiQzOM85H3MqRy/Sin-t%C3%ADtulo?node-id=192-929) | `11168.0, 2355.0, 7392.0, 5450.0` | [modelo-entidad-relacion-figma.png](modelo-entidad-relacion-figma.png) |
+| Diagrama Entidad–Relación — Notación Chen | [381:2299](https://www.figma.com/board/kjk49fziEiQzOM85H3MqRy/Sin-t%C3%ADtulo?node-id=381-2299) | Sección completa exportada como PNG | [modelo-entidad-relacion-chen-figjam.png](modelo-entidad-relacion-chen-figjam.png) |
 
 ## Alcance y pendientes
 
