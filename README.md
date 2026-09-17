@@ -244,8 +244,8 @@ Muestra representativa. Los quince diagramas exportados del FigJam se conservan 
 </td>
 <td align="center">
 <a href="docs/diagramas/modelo-entidad-relacion-figma.png">
-<img src="docs/screenshots/thumbs/modelo-entidad-relacion-figma.png" width="240" alt="Diagrama Entidad–Relación">
-<br>Diagrama Entidad–Relación
+<img src="docs/screenshots/thumbs/modelo-entidad-relacion-figma.png" width="240" alt="Entity–Relationship Diagram">
+<br>Entity–Relationship Diagram
 </a>
 </td>
 </tr>
