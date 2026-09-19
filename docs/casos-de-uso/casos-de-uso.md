@@ -491,7 +491,7 @@ Objetivo: Permitir que el cliente elija la cabina que utilizará para un tratami
 
 - Solo podrá elegir cabinas compatibles, con capacidad suficiente y operativas.
 
-- Un tratamiento utiliza una sola cabina a la vez; una cita con varios tratamientos puede utilizar diferentes cabinas.
+- Una Cita representa exactamente un Tratamiento y utiliza una sola cabina a la vez; las Citas generadas desde un mismo Carrito pueden utilizar diferentes Cabinas.
 
 ### CU-09 — Consultar disponibilidad y seleccionar fecha/hora
 
@@ -629,7 +629,7 @@ Objetivo: Permitir que el Cliente cree una cita en proceso desde el carrito y la
 
 4. TZISCA crea una Cita en estado PENDIENTE por cada Tratamiento seleccionado y asigna su id_cita. La creación no equivale a confirmación.
 
-6. TZISCA calcula y muestra el importe de los tratamientos y el total de la Cita conforme a la política de cálculo aprobada.
+6. TZISCA calcula y muestra el importe de cada Cita y el total de la operación conforme a la política de cálculo aprobada.
 
 7. El Cliente continúa a CU-39 — Realizar pago de cita.
 
@@ -681,7 +681,7 @@ Objetivo: Permitir que el Cliente cree una cita en proceso desde el carrito y la
 
 Actor principal: Cliente
 
-Objetivo: Permitir que el cliente consulte las citas realizadas y el estado de sus tratamientos.
+Objetivo: Permitir que el cliente consulte las Citas realizadas y el estado de cada Cita asociada a un Tratamiento.
 
 **Precondiciones**
 
@@ -697,9 +697,9 @@ Objetivo: Permitir que el cliente consulte las citas realizadas y el estado de s
 
 4. El cliente selecciona una cita.
 
-5. El sistema muestra los tratamientos incluidos.
+5. El sistema muestra el Tratamiento asociado a la Cita.
 
-6. Para cada tratamiento presenta nombre, cabina, fecha, hora, número de personas, estado y proveedor asignado cuando corresponda.
+6. Para la Cita presenta nombre del Tratamiento, cabina, fecha, hora, número de personas, estado y proveedor asignado cuando corresponda.
 
 7. TZISCA muestra el estado general del pago asociado a la cita y permite acceder a su detalle mediante CU-40.
 
@@ -737,19 +737,19 @@ Objetivo: Permitir que el Cliente cancele una Cita específica sin cancelar las 
 
 1. El cliente consulta una cita.
 
-2. Selecciona uno de sus tratamientos.
+2. Selecciona la Cita que desea cancelar.
 
-3. Elige Cancelar tratamiento.
+3. Elige Cancelar cita.
 
 4. TZISCA solicita confirmación.
 
 5. El cliente confirma.
 
-6. El tratamiento cambia al estado Cancelado.
+6. La Cita cambia al estado CANCELADA.
 
 7. TZISCA libera cabina, horario y proveedor asignado cuando exista.
 
-8. Los demás tratamientos permanecen sin cambios.
+8. Las demás Citas vinculadas a la misma operación permanecen sin cambios.
 
 9. TZISCA revisa el Pago relacionado y verifica si se encuentra en estado Pagado.
 
@@ -761,7 +761,7 @@ Objetivo: Permitir que el Cliente cancele una Cita específica sin cancelar las 
 
 **Flujos alternos / excepciones**
 
-- Si el tratamiento ya está completado o no puede cancelarse conforme a las reglas vigentes, TZISCA impide la operación.
+- Si la Cita ya está COMPLETADA o no puede cancelarse conforme a las reglas vigentes, TZISCA impide la operación.
 
 - Si no existe un Pago Pagado, no hay una política aprobada aplicable o no existe importe reembolsable, TZISCA conserva la cancelación y su trazabilidad sin iniciar CU-43.
 
@@ -769,13 +769,13 @@ Objetivo: Permitir que el Cliente cancele una Cita específica sin cancelar las 
 
 **Postcondiciones**
 
-- Solo el tratamiento seleccionado queda cancelado y sus recursos quedan liberados.
+- Solo la Cita seleccionada queda CANCELADA y sus recursos quedan liberados.
 
 - El Pago conserva su trazabilidad y, cuando se haya iniciado CU-43, el estado de la Devolucion queda actualizado.
 
 **Reglas relacionadas**
 
-- La cancelación de un tratamiento solo podrá originar una devolución de tipo PARCIAL cuando la política aprobada así lo determine; no genera automáticamente una devolución total.
+- La cancelación de una Cita solo podrá originar una devolución de tipo PARCIAL cuando la política aprobada así lo determine; no genera automáticamente una devolución total.
 
 - Una cita confirmada no se edita directamente; si el cliente desea cambiar un servicio, debe cancelarlo y generar una nueva selección/cita.
 
@@ -801,11 +801,11 @@ Objetivo: Permitir que el Cliente cancele todas las Citas activas vinculadas a l
 
 2. Selecciona Cancelar cita.
 
-3. TZISCA informa que se cancelarán todos los tratamientos activos.
+3. TZISCA informa que se cancelarán todas las Citas activas vinculadas a la operación.
 
 4. El cliente confirma.
 
-5. El sistema cambia los tratamientos activos al estado Cancelado.
+5. El sistema cambia las Citas activas al estado CANCELADA.
 
 6. Libera cabinas, horarios y proveedores asignados.
 
@@ -819,7 +819,7 @@ Objetivo: Permitir que el Cliente cancele todas las Citas activas vinculadas a l
 
 **Flujos alternos / excepciones**
 
-- Si algún tratamiento ya se encuentra completado, no se modifica su estado histórico; la cancelación aplica a los tratamientos que todavía puedan cancelarse.
+- Si alguna Cita ya se encuentra COMPLETADA, no se modifica su estado histórico; la cancelación aplica a las Citas que todavía puedan cancelarse.
 
 - Si no existe un Pago Pagado, no hay una política aprobada aplicable o no existe importe reembolsable, TZISCA registra la condición económica sin iniciar CU-43.
 
@@ -827,7 +827,7 @@ Objetivo: Permitir que el Cliente cancele todas las Citas activas vinculadas a l
 
 **Postcondiciones**
 
-- La cita deja de tener tratamientos activos reservados.
+- La operación deja de tener Citas activas reservadas.
 
 - El Pago conserva su trazabilidad y, cuando corresponda, la Devolucion conserva su tipo y estado.
 
@@ -835,7 +835,7 @@ Objetivo: Permitir que el Cliente cancele todas las Citas activas vinculadas a l
 
 - La cancelación completa evalúa una posible devolución de tipo TOTAL o PARCIAL únicamente conforme a la política aprobada y al importe reembolsable.
 
-- El cliente debe poder distinguir entre cancelar un tratamiento y cancelar toda la cita.
+- El cliente debe poder distinguir entre cancelar una Cita y cancelar todas las Citas de la misma operación.
 
 ## 6. Casos de uso del Administrador general
 
@@ -1251,13 +1251,13 @@ Objetivo: Permitir que Recepción y cabinas cree una cita manual para un Cliente
 
 - Si una cabina no es compatible, no puede seleccionarse.
 
-- Si uno de varios tratamientos presenta conflicto, Recepción puede conservar los demás o quitar el afectado.
+- Si una de las Citas generadas en la operación manual presenta conflicto, Recepción puede conservar las demás o quitar la afectada.
 
-- Si el Pago queda Pendiente, Fallido o Cancelado, la Cita manual permanece PENDIENTE, sus Citassss permanecen PENDIENTE y no se confirma definitivamente.
+- Si el Pago queda Pendiente, Fallido o Cancelado, las Citas generadas en la operación manual permanecen PENDIENTE y no se confirman definitivamente.
 
 **Postcondiciones**
 
-- La Cita manual puede quedar PENDIENTE con sus Citassss en PENDIENTE mientras se resuelve el pago requerido.
+- Las Citas generadas en la operación manual pueden quedar PENDIENTE mientras se resuelve el pago requerido.
 
 - La Cita queda relacionada con su Pago cuando el cobro es requerido y solo se confirma después de un Pago Pagado y de la revalidación satisfactoria de disponibilidad.
 
@@ -1655,13 +1655,13 @@ Objetivo: Registrar que el proveedor comenzó a prestar el tratamiento al client
 
 **Flujos alternos / excepciones**
 
-- Si el tratamiento está Cancelado o Completado, el sistema no permite iniciar atención.
+- Si la Cita asociada está CANCELADA o COMPLETADA, el sistema no permite iniciar atención.
 
 - Si el proveedor ya no es el asignado, TZISCA impide la operación.
 
 **Postcondiciones**
 
-- El tratamiento queda identificado como un servicio actualmente en curso.
+- La Cita queda identificada como un servicio actualmente en curso.
 
 **Reglas relacionadas**
 
@@ -1699,17 +1699,17 @@ Objetivo: Registrar que el servicio terminó y fue atendido.
 
 **Flujos alternos / excepciones**
 
-- Si el tratamiento no se encuentra En atención, TZISCA no permite marcarlo como Completado.
+- Si la Cita no se encuentra EN_ATENCION, TZISCA no permite marcarla como COMPLETADA.
 
 **Postcondiciones**
 
-- El tratamiento queda registrado como atendido y conserva su información histórica.
+- La Cita queda registrada como atendida y conserva su información histórica.
 
 **Reglas relacionadas**
 
 - Solo el proveedor asignado puede completar el tratamiento.
 
-- Un tratamiento completado no se elimina.
+- Una Cita COMPLETADA no se elimina.
 
 ### CU-34 — Registrar indisponibilidad
 
@@ -1803,15 +1803,15 @@ Objetivo: Intentar mantener un tratamiento reservado cuando el proveedor origina
 
 - Si el cliente acepta, TZISCA elimina la asignación anterior, asigna el nuevo proveedor, actualiza su agenda y conserva cabina, fecha y hora.
 
-- Si el cliente cancela solo el tratamiento, TZISCA cambia su estado a Cancelado y libera cabina, horario y asignaciones.
+- Si el cliente cancela solo la Cita afectada, TZISCA cambia su estado a CANCELADA y libera cabina, horario y asignaciones.
 
-- Si el cliente cancela toda la cita, TZISCA cancela los tratamientos activos y libera sus recursos.
+- Si el cliente cancela todas las Citas de la operación, TZISCA cancela las Citas activas y libera sus recursos.
 
 - Si no existe proveedor sustituto, continúa CU-36.
 
 **Postcondiciones**
 
-- El tratamiento queda reasignado o se procesa la decisión de cancelación del cliente.
+- La Cita queda reasignada o se procesa la decisión de cancelación del cliente.
 
 - Si la decisión del Cliente implica cancelar un tratamiento o toda la Cita, CU-43 se aplica únicamente cuando existe un Pago Pagado, una política aprobada aplicable y un importe reembolsable.
 
@@ -2161,7 +2161,7 @@ Objetivo: Gestionar una Devolucion de tipo PARCIAL o TOTAL cuando una cancelaci�
 
 8. Si el reembolso concluye correctamente, TZISCA cambia la Devolucion a COMPLETADA y actualiza el Pago a Reembolsado o Reembolsado parcialmente, según corresponda.
 
-9. TZISCA conserva la relación entre Pago, Devolucion, Cita y, para una devolución de tipo PARCIAL, el Cita afectado.
+9. TZISCA conserva la relación entre Pago, Devolucion, Cita y, para una devolución de tipo PARCIAL, la Cita afectada.
 
 **Flujos alternos / excepciones**
 
@@ -2202,7 +2202,7 @@ Con estos 43 casos de uso queda documentado el alcance funcional principal acord
 
 ## 11. Alineación vigente del modelo y políticas
 
-- Modelo oficial de 19 entidades en seguridad, catalogo, reservas, operacion y pagos.
+- Modelo oficial de 22 entidades en seguridad, catalogo, reservas, operacion y pagos.
 
 - Cliente es una entidad distinta de Usuario y mantiene relación 1:N con Cita.
 

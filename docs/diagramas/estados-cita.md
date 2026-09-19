@@ -12,9 +12,9 @@ stateDiagram-v2
     CONFIRMADA --> CANCELADA
     CONFIRMADA --> EN_ATENCION
     EN_ATENCION --> CANCELADA
-    EN_ATENCION --> COMPLETADO
+    EN_ATENCION --> COMPLETADA
 ```
 
-Se muestran las transiciones principales documentadas para la entidad Cita. Una Cita representa un tratamiento programado para un Cliente; no existe una entidad independiente de detalle de reservación.
+Se muestran las transiciones principales documentadas para la entidad Cita. Los estados oficiales son `PENDIENTE`, `CONFIRMADA`, `EN_ATENCION`, `COMPLETADA`, `CANCELADA` y `EXPIRADA`. Una Cita representa exactamente un tratamiento programado para un Cliente; no existe una entidad técnica llamada Reservacion.
 
 Referencia: [Diccionario de datos](../modelo-datos/diccionario-datos.md) y [reglas de negocio](../reglas-negocio/reglas-negocio.md).

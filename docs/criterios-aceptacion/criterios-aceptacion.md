@@ -172,11 +172,11 @@ CA-12.1 — Privacidad de citas. Dado un Cliente autenticado, cuando consulte su
 
 CA-12.2 — Lista. Cuando el Cliente abra Mis citas, el sistema deberá mostrar sus citas existentes con información suficiente para seleccionarlas.
 
-CA-12.3 — Detalle. Cuando el Cliente abra una cita propia, TZISCA deberá mostrar los tratamientos que la integran.
+CA-12.3 — Detalle. Cuando el Cliente abra una Cita propia, TZISCA deberá mostrar el Tratamiento asociado, la Cabina, el horario, el número de personas y el estado.
 
 CA-12.4 — Información individual. Por cada tratamiento, el detalle deberá mostrar tratamiento, cabina, fecha, hora, número de personas, estado y proveedor asignado cuando exista.
 
-CA-12.5 — Estados independientes. Dada una cita con tratamientos en estados diferentes, cuando se consulte su detalle, entonces TZISCA deberá mostrar el estado real de cada tratamiento sin unificarlos.
+CA-12.5 — Estados independientes. Dadas varias Citas generadas desde el mismo Carrito con estados diferentes, cuando se consulten, TZISCA deberá mostrar el estado real de cada Cita sin unificarlos.
 
 CA-12.6 — Estado de pago. Cuando una cita tenga un Pago relacionado, TZISCA deberá mostrar su estado actual usando únicamente Pendiente, Procesando, Pagado, Fallido, Cancelado, Reembolsado o Reembolsado parcialmente.
 
@@ -186,15 +186,15 @@ CA-12.8 — Privacidad del pago. Dado un Cliente autenticado, cuando solicite el
 
 ### CU-13 — Cancelar tratamiento
 
-CA-13.1 — Cancelación individual. Dado que un tratamiento puede cancelarse, cuando el Cliente confirme la cancelación, entonces TZISCA deberá cancelar solo ese tratamiento.
+CA-13.1 — Cancelación individual. Dado que una Cita representa un Tratamiento, cuando el Cliente confirme la cancelación, entonces TZISCA deberá cancelar solo esa Cita.
 
 CA-13.2 — Confirmación de la acción. Antes de modificar el estado del tratamiento, TZISCA deberá solicitar una confirmación explícita al Cliente.
 
-CA-13.3 — Cambio de estado. Después de una cancelación válida, el Cita seleccionado deberá quedar en estado CANCELADO.
+CA-13.3 — Cambio de estado. Después de una cancelación válida, la Cita seleccionada deberá quedar en estado CANCELADO.
 
 CA-13.4 — Liberación de recursos. Al cancelar el tratamiento, TZISCA deberá liberar su cabina, horario y proveedor asignado, si existe.
 
-CA-13.5 — Otros tratamientos. La cancelación individual no deberá modificar automáticamente los demás tratamientos de la Cita.
+CA-13.5 — Otras Citas. La cancelación individual no deberá modificar automáticamente las demás Citas generadas desde el mismo Carrito.
 
 CA-13.6 — Detección del pago. Después de cancelar, TZISCA deberá consultar el Pago relacionado e identificar de forma verificable si se encuentra en estado Pagado.
 
@@ -204,19 +204,19 @@ CA-13.8 — Posible devolución parcial. Solo cuando la política aprobada autor
 
 CA-13.9 — Sin devolución aplicable. Si no existe Pago Pagado, la política no autoriza devolución o el importe reembolsable es cero, TZISCA deberá conservar la cancelación sin crear una Devolucion.
 
-CA-13.10 — Trazabilidad económica. La cancelación deberá conservar la relación entre Cita, Cita, Pago y, cuando se haya iniciado CU-43, la Devolucion, junto con el importe afectado y el resultado de la evaluación.
+CA-13.10 — Trazabilidad económica. La cancelación deberá conservar la relación entre Cita, Pago y, cuando se haya iniciado CU-43, la Devolucion, junto con el importe afectado y el resultado de la evaluación.
 
 ### CU-14 — Cancelar cita completa
 
-CA-14.1 — Advertencia. Antes de cancelar la Cita, TZISCA deberá mostrar los tratamientos activos que serán afectados.
+CA-14.1 — Advertencia. Antes de cancelar varias Citas generadas desde un mismo Carrito, TZISCA deberá mostrar las Citas activas que serán afectadas.
 
 CA-14.2 — Confirmación. La cancelación completa solo deberá ejecutarse después de la confirmación explícita del Cliente.
 
-CA-14.3 — Estados. Al ejecutar la cancelación, todos los tratamientos que todavía puedan cancelarse deberán pasar a CANCELADO; los tratamientos completados deberán conservar su estado histórico.
+CA-14.3 — Estados. Al ejecutar la cancelación, todas las Citas que todavía puedan cancelarse deberán pasar a CANCELADA; las Citas completadas deberán conservar su estado histórico.
 
-CA-14.4 — Liberación total. TZISCA deberá liberar las cabinas, horarios y proveedores correspondientes a los tratamientos cancelados.
+CA-14.4 — Liberación total. TZISCA deberá liberar las cabinas, horarios y proveedores correspondientes a las Citas canceladas.
 
-CA-14.5 — Conservación histórica. La Cita y sus tratamientos no deberán eliminarse físicamente y deberán conservarse para consulta y auditoría.
+CA-14.5 — Conservación histórica. Las Citas no deberán eliminarse físicamente y deberán conservarse para consulta y trazabilidad.
 
 CA-14.6 — Detección del pago. Después de cancelar, TZISCA deberá consultar el Pago relacionado e identificar si se encuentra en estado Pagado.
 
@@ -314,11 +314,11 @@ CA-20.1 — Acceso global. El Administrador general deberá poder consultar las 
 
 CA-20.2 — Información general. Cada cita deberá mostrar al menos la identificación correspondiente y los datos básicos del cliente.
 
-CA-20.3 — Tratamientos incluidos. Al abrir una cita, el sistema deberá mostrar todos sus tratamientos.
+CA-20.3 — Tratamiento asociado. Al abrir una Cita, el sistema deberá mostrar su único Tratamiento asociado.
 
 CA-20.4 — Detalle por tratamiento. Para cada tratamiento deberá poder consultar cabina, fecha, hora, número de personas, estado y proveedor asignado.
 
-CA-20.5 — Estados diferentes. El sistema deberá permitir que los tratamientos de una misma cita tengan estados diferentes.
+CA-20.5 — Estados diferentes. El sistema deberá permitir que las Citas generadas desde la misma operación tengan estados diferentes.
 
 CA-20.6 — Información actualizada. Los cambios realizados por otros roles deberán reflejarse al volver a consultar la cita.
 
@@ -344,7 +344,7 @@ CA-21.9 — Posible devolución. Solo si la política aprobada autoriza una devo
 
 CA-21.10 — Sin devolución aplicable. Si no existe Pago Pagado, la política no autoriza devolución o no existe importe reembolsable, la cancelación deberá conservarse sin iniciar CU-43.
 
-CA-21.11 — Trazabilidad económica. La operación deberá conservar la relación entre la cancelación, la Cita, los tratamientos afectados, el Pago original y cualquier Devolucion iniciada.
+CA-21.11 — Trazabilidad económica. La operación deberá conservar la relación entre cada cancelación, la Cita afectada, el Pago original y cualquier Devolucion iniciada.
 
 ### CU-22 — Consultar reportes básicos
 
@@ -374,25 +374,25 @@ CA-23.1 — Acceso a creación manual. Dado un usuario con rol Recepción y cabi
 
 CA-23.2 — Selección o registro de Cliente. Recepción deberá poder buscar un Cliente existente o registrarlo conforme a las reglas de cuentas antes de asociarlo.
 
-CA-23.3 — Tratamientos independientes. La cita manual deberá admitir uno o varios tratamientos, incluso repetidos, y cada instancia deberá conservar su propio número de personas, cabina, fecha y hora.
+CA-23.3 — Citas independientes. Una operación manual podrá generar una o varias Citas independientes, una por cada Tratamiento, incluso cuando se repita el mismo tratamiento; cada Cita conservará su propio número de personas, cabina, fecha y hora.
 
 CA-23.4 — Cabina válida. Para cada tratamiento, TZISCA deberá impedir la selección de una cabina incompatible o sin capacidad suficiente.
 
 CA-23.5 — Disponibilidad. Antes de crear la Cita, TZISCA deberá comprobar la disponibilidad de la cabina durante toda la duración del tratamiento e impedir continuar con los elementos en conflicto.
 
-CA-23.6 — Estado previo al pago. Dado que la cita manual requiere pago y sus datos son válidos, cuando Recepción continúe, entonces TZISCA deberá crear la Cita en estado PENDIENTE con id_cita y cada Cita en estado PENDIENTE.
+CA-23.6 — Estado previo al pago. Dado que la operación manual requiere pago y sus datos son válidos, cuando Recepción continúe, TZISCA deberá crear cada Cita en estado PENDIENTE con su propio id_cita.
 
 CA-23.7 — Importe. Para una Cita manual PENDIENTE, TZISCA deberá calcular el importe en backend conforme a la política aprobada antes de ejecutar CU-42.
 
-CA-23.8 — Pago pendiente o en procesamiento. Si el Pago está Pendiente o Procesando, la Cita deberá permanecer PENDIENTE, sus tratamientos deberán permanecer PENDIENTE y no deberá mostrarse como confirmada.
+CA-23.8 — Pago pendiente o en procesamiento. Si el Pago está Pendiente o Procesando, cada Cita de la operación deberá permanecer PENDIENTE y no deberá mostrarse como confirmada.
 
-CA-23.9 — Pago fallido o cancelado. Si el Pago queda Fallido o Cancelado, TZISCA deberá conservar su trazabilidad y no deberá confirmar la Cita ni sus tratamientos.
+CA-23.9 — Pago fallido o cancelado. Si el Pago queda Fallido o Cancelado, TZISCA deberá conservar su trazabilidad y no deberá confirmar ninguna Cita de la operación.
 
 CA-23.10 — Pago aprobado. Dado un Pago Pagado, cuando CU-42 devuelva el control a CU-23, entonces TZISCA deberá revalidar la disponibilidad antes de confirmar.
 
 CA-23.11 — Confirmación manual. Solo si el Pago está Pagado y la revalidación resulta satisfactoria, la Cita deberá pasar de PENDIENTE a CONFIRMADA.
 
-CA-23.12 — Permanencia en proceso. Mientras no se cumplan las condiciones económicas y de disponibilidad, la Cita manual podrá permanecer PENDIENTE y sus tratamientos en PENDIENTE.
+CA-23.12 — Permanencia en proceso. Mientras no se cumplan las condiciones económicas y de disponibilidad, las Citas de la operación manual podrán permanecer PENDIENTE.
 
 CA-23.13 — Asignación inicial del proveedor. La creación manual no deberá asignar proveedor; después de la confirmación, la asignación inicial deberá corresponder exclusivamente al Administrador general.
 
@@ -422,7 +422,7 @@ CA-25.2 — Consulta por cabina. Deberá poder revisar los espacios libres y ocu
 
 CA-25.3 — Consulta relacionada con tratamiento. Cuando se seleccione un tratamiento, el sistema deberá considerar únicamente las cabinas compatibles.
 
-CA-25.4 — Citas confirmadas. Los periodos correspondientes a tratamientos confirmados deberán mostrarse como no disponibles.
+CA-25.4 — Citas confirmadas. Los periodos correspondientes a Citas CONFIRMADA deberán mostrarse como no disponibles.
 
 CA-25.5 — Bloqueos temporales. Los horarios con un bloqueo temporal vigente deberán considerarse no disponibles para evitar conflictos.
 
@@ -444,7 +444,7 @@ CA-26.4 — Motivo obligatorio. Todo bloqueo deberá registrar un motivo, por ej
 
 CA-26.5 — Aplicación inmediata. Una vez confirmado el bloqueo, el intervalo correspondiente no deberá aparecer disponible para nuevas citas.
 
-CA-26.6 — Conflicto con cita existente. Si existen tratamientos confirmados dentro del periodo que se intenta bloquear, TZISCA deberá advertir a Recepción antes de completar la acción.
+CA-26.6 — Conflicto con cita existente. Si existen Citas CONFIRMADA dentro del periodo que se intenta bloquear, TZISCA deberá advertir a Recepción antes de completar la acción.
 
 CA-26.7 — No cancelar silenciosamente. Crear un bloqueo no deberá cancelar automáticamente una cita existente sin que el usuario gestione primero el conflicto.
 
@@ -472,7 +472,7 @@ CA-27.8 — Desactivación. La desactivación administrativa de una cabina deber
 
 ### CU-28 — Cancelar tratamiento
 
-CA-28.1 — Selección. Dado un usuario de Recepción y cabinas autorizado, cuando abra una Cita, entonces deberá poder seleccionar un tratamiento cancelable.
+CA-28.1 — Selección. Dado un usuario de Recepción y cabinas autorizado, cuando abra una Cita, entonces deberá poder seleccionar la Cita cancelable.
 
 CA-28.2 — Motivo y confirmación. Antes de cancelar, TZISCA deberá registrar el motivo cuando corresponda y solicitar una confirmación explícita.
 
@@ -494,15 +494,15 @@ CA-28.10 — Trazabilidad económica. El Pago original, el importe afectado, la 
 
 ### CU-29 — Cancelar cita completa
 
-CA-29.1 — Selección y alcance. Dado un usuario de Recepción y cabinas autorizado, cuando seleccione Cancelar cita, entonces TZISCA deberá mostrar todos los tratamientos activos afectados.
+CA-29.1 — Selección y alcance. Dado un usuario de Recepción y cabinas autorizado, cuando seleccione una cancelación múltiple, TZISCA deberá mostrar todas las Citas activas afectadas.
 
 CA-29.2 — Advertencia y confirmación. Antes de ejecutar la cancelación, TZISCA deberá mostrar la advertencia, permitir registrar el motivo y exigir confirmación explícita.
 
-CA-29.3 — Estados. Después de confirmar, todos los tratamientos activos que puedan cancelarse deberán quedar CANCELADO y los tratamientos completados deberán conservar su estado histórico.
+CA-29.3 — Estados. Después de confirmar, todas las Citas activas afectadas deberán quedar CANCELADA y las Citas COMPLETADA deberán conservar su estado histórico.
 
-CA-29.4 — Liberación de recursos. TZISCA deberá liberar las cabinas, horarios y proveedores de los tratamientos cancelados.
+CA-29.4 — Liberación de recursos. TZISCA deberá liberar las cabinas, horarios y proveedores de las Citas CANCELADAS.
 
-CA-29.5 — Conservación histórica. La Cita y sus tratamientos no deberán eliminarse físicamente y el sistema deberá registrar el usuario, la fecha, la hora y el motivo.
+CA-29.5 — Conservación histórica. Las Citas no deberán eliminarse físicamente y el sistema deberá registrar el usuario, la fecha, la hora y el motivo de cada cancelación.
 
 CA-29.6 — Detección del pago. Después de cancelar, TZISCA deberá consultar el Pago relacionado y verificar si está Pagado.
 
@@ -562,7 +562,7 @@ CA-32.7 — Historial. TZISCA deberá registrar qué proveedor inició la atenci
 
 ### CU-33 — Marcar tratamiento Completado
 
-CA-33.1 — Estado previo. Solo un tratamiento en estado En atención podrá marcarse como Completado.
+CA-33.1 — Estado previo. Solo la Cita asociada a un Tratamiento en atención podrá pasar de EN_ATENCION a COMPLETADA.
 
 CA-33.2 — Acción exclusiva. Solo el proveedor asignado deberá poder finalizar su atención.
 
@@ -570,11 +570,11 @@ CA-33.3 — Confirmación. Antes de completar el servicio, el sistema deberá so
 
 CA-33.4 — Hora de finalización. TZISCA deberá registrar la fecha y hora real en que se finalizó el tratamiento.
 
-CA-33.5 — Cambio de estado. El tratamiento deberá cambiar de En atención a Completado.
+CA-33.5 — Cambio de estado. La Cita asociada al Tratamiento deberá cambiar de EN_ATENCION a COMPLETADA.
 
-CA-33.6 — Conservación histórica. El tratamiento completado deberá conservarse en el historial.
+CA-33.6 — Conservación histórica. La Cita COMPLETADA deberá conservarse en el historial.
 
-CA-33.7 — No reabrir automáticamente. Un tratamiento Completado no deberá volver automáticamente a Confirmado o En atención.
+CA-33.7 — No reabrir automáticamente. Una Cita COMPLETADA no deberá volver automáticamente a CONFIRMADA o EN_ATENCION.
 
 ### CU-34 — Registrar indisponibilidad
 
@@ -660,7 +660,7 @@ CA-38.3 — Filtrar por fecha. El proveedor deberá poder consultar su historial
 
 CA-38.4 — Solo información propia. Un proveedor solo podrá consultar su propio historial de atención.
 
-CA-38.5 — Tratamientos completados. Los tratamientos Completados deberán conservarse en este historial.
+CA-38.5 — Citas completadas. Las Citas COMPLETADA deberán conservarse en este historial.
 
 CA-38.6 — Diferenciar agenda e historial. Los tratamientos pendientes o futuros deberán aparecer en la agenda; los ya atendidos deberán quedar disponibles en el historial.
 
@@ -746,7 +746,7 @@ CA-42.4 — Estados normalizados. El Pago deberá usar exclusivamente Pendiente,
 
 CA-42.5 — Datos del registro. Cuando Recepción registre o valide una operación, TZISCA deberá conservar importe, fecha, hora, método, estado, referencia cuando exista y usuario responsable.
 
-CA-42.6 — Pago no aprobado. Si el Pago está Pendiente, Procesando, Fallido o Cancelado, TZISCA deberá mantener la Cita PENDIENTE y sus tratamientos PENDIENTE, y no deberá confirmarlos.
+CA-42.6 — Pago no aprobado. Si el Pago está Pendiente, Procesando, Fallido o Cancelado, TZISCA deberá mantener PENDIENTE cada Cita de la operación y no deberá confirmarla.
 
 CA-42.7 — Pago aprobado. Si el Pago queda Pagado, TZISCA deberá regresar a CU-23 para revalidar disponibilidad; el estado Pagado no deberá confirmar por sí mismo la Cita.
 
@@ -758,7 +758,7 @@ CA-43.1 — Condiciones de inicio. Dada una cancelación con un Pago Pagado, cua
 
 CA-43.2 — Tipo de devolución. Al registrar la Devolucion, TZISCA deberá guardar el tipo PARCIAL o TOTAL según el alcance económico determinado y deberá mantenerlo separado del estado de procesamiento.
 
-CA-43.3 — Estado inicial. Al crear la Devolucion, su estado deberá ser PENDIENTE y deberá quedar relacionada con el Pago y la Cita; para tipo PARCIAL también deberá relacionarse con el Cita afectado cuando corresponda.
+CA-43.3 — Estado inicial. Al crear la Devolucion, su estado deberá ser PENDIENTE y deberá quedar relacionada con el Pago y la Cita; para tipo PARCIAL también deberá relacionarse con la Cita afectada cuando corresponda.
 
 CA-43.4 — Inicio del procesamiento. Cuando comience el reembolso, TZISCA deberá cambiar la Devolucion de PENDIENTE a PROCESANDO y registrar la fecha, referencia y responsable cuando existan.
 

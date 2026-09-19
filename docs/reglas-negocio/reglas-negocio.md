@@ -4,7 +4,7 @@ Reglas de Negocio
 
 Sistema de Citas, Recomendación y Gestión de Cabinas para Spa
 
-Este documento conserva RN-01 a RN-90, actualizadas para el modelo vigente, e incorpora RN-91 a RN-108 con las decisiones aprobadas. La referencia oficial es el modelo de 19 entidades distribuido en los schemas seguridad, catalogo, reservas, operacion y pagos.
+Este documento conserva RN-01 a RN-108 e incorpora RN-109 a RN-117 para el modelo aprobado de 22 entidades distribuido en los schemas seguridad, catalogo, reservas, operacion y pagos.
 
 ## 1. Usuarios, clientes y roles
 
@@ -58,7 +58,7 @@ RN-21. La especialización y la prioridad configurada solo se aplicarán despué
 
 ## 5. Carrito y selección
 
-RN-22. Un Carrito podrá agrupar uno o varios tratamientos seleccionados antes de generar sus Citas.
+RN-22. Un Carrito podrá agrupar uno o varios CarritoItem antes de generar sus Citas.
 
 RN-23. Cada selección conservará tratamiento, número de personas, horario y cabina propuesta sin crear una Cita confirmada.
 
@@ -256,6 +256,24 @@ RN-107. La autenticación usará ASP.NET Core Identity, JWT como access token y 
 
 RN-108. La recomendación será determinista y ordenará por compatibilidad, capacidad, estado operativo, disponibilidad, preferencias, cabina especializada antes que multifuncional, prioridad configurada e id_cabina ascendente.
 
+RN-109. Cada configuración independiente del carrito se persistirá como CarritoItem; un Carrito podrá contener uno o varios ítems.
+
+RN-110. CarritoItem podrá mantener Cabina, inicio, fin y expiración de bloqueo como valores provisionales; no sustituye a una Cita ni a CitaCabina.
+
+RN-111. Un bloqueo temporal solo será elegible mientras `CarritoItem.fecha_expiracion_bloqueo` sea futura y tendrá una vigencia máxima de 15 minutos.
+
+RN-112. BloqueoCabina representa indisponibilidad operativa programada y deberá tener motivo, intervalo válido y estado activo; no debe confundirse con el bloqueo temporal del carrito.
+
+RN-113. Solo una combinación activa en TratamientoCabina habilita una cabina para un tratamiento, además de capacidad, estado y disponibilidad.
+
+RN-114. La disponibilidad deberá rechazar traslapes con Cita/CitaCabina vigentes, CarritoItem bloqueado y BloqueoCabina activo, así como proveedor no disponible.
+
+RN-115. Al confirmar pago se revalidará disponibilidad integral; cada CarritoItem confirmado originará su propia Cita y su asignación CitaCabina correspondiente.
+
+RN-116. Toda Devolucion deberá conservar su motivo de negocio.
+
+RN-117. Transaccion.id_devolucion será nullable y solo se usará cuando la traza técnica corresponda a una devolución.
+
 ## 18. Resumen de reglas por área
 
 | Área | Rango | Cantidad |
@@ -277,6 +295,7 @@ RN-108. La recomendación será determinista y ordenará por compatibilidad, cap
 | Reportes | RN-71 a RN-072 | 2 |
 | Pagos y devoluciones | RN-73 a RN-090 | 18 |
 | Parámetros y decisiones aprobadas | RN-91 a RN-108 | 18 |
-| Total | RN-01 a RN-108 | 108 |
+| Modelo de 22 entidades | RN-109 a RN-117 | 9 |
+| Total | RN-01 a RN-117 | 117 |
 
 Las decisiones DP-OP-01 a DP-OP-13, DP-EC-01, DP-EC-02 y DP-TEC-01 a DP-TEC-03 quedaron resueltas por RN-91 a RN-108 y ya no están pendientes de aprobación.

@@ -2,7 +2,7 @@
 
 [Inicio](../README.md)
 
-Espacio previsto para SQL Server; todavía no hay un esquema físico implementado.
+Esquema físico de referencia para SQL Server. El script ejecutable es [`scripts/tzisca.sql`](scripts/tzisca.sql) y crea el modelo canónico de 22 tablas en los esquemas `seguridad`, `catalogo`, `reservas`, `operacion` y `pagos`.
 
 - `migrations/`: cambios versionados del esquema.
 - `scripts/`: scripts de administración y apoyo.

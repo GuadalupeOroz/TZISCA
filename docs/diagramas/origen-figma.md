@@ -14,7 +14,7 @@
 - Se incluyeron actores y conectores situados fuera de las secciones de casos de uso. Los títulos flotantes de sección que muestra el editor de Figma no forman parte del PNG exportado; sus nombres quedan registrados en este índice.
 - Las cinco capturas adjuntas sirvieron como referencia visual. Sus rutas temporales de macOS ya no estaban disponibles al ejecutar la tarea, por lo que no se copiaron ni renombraron esos originales. Las cinco composiciones correspondientes se recuperaron del FigJam.
 - Se comprobó que el tablero permite exportar SVG. Se incorporan PNG por su representación visual verificada y miniaturas proporcionales; no se agrega el SVG global de aproximadamente 18,5 MB.
-- El tablero no se modificó.
+- El 18 de septiembre de 2026 se actualizó el tablero autorizado directamente: el ER principal y el Chen integran CarritoItem, TratamientoCabina, BloqueoCabina, Devolucion.motivo y Transaccion.id_devolucion. Las exportaciones finales sustituyen las PNG principales.
 
 ## Inventario de exportaciones
 
