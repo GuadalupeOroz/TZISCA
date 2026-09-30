@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/TZISCA.Api/TZISCA.Api.csproj" />
+    <Project Path="backend/TZISCA.Application/TZISCA.Application.csproj" />
+    <Project Path="backend/TZISCA.Domain/TZISCA.Domain.csproj" />
+    <Project Path="backend/TZISCA.Infrastructure/TZISCA.Infrastructure.csproj" />
+  </Folder>
+</Solution>
