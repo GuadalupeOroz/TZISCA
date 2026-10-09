@@ -25,7 +25,7 @@ Se alinearon los casos de consulta, cancelación, confirmación y atención para
 
 ## 5. Errores tipográficos y técnicos
 
-No quedaron coincidencias en la documentación vigente para `19 entidades`, `COMPLETADO`, `Citassss`, `el Cita`, `Cita, Cita, Pago`, `/temporary-blocks`, `/reservations`, `/provider-assignments` ni `ReservacionTratamiento`.
+Al cierre de esta limpieza no quedaron coincidencias para `COMPLETADO`, `Citassss`, `el Cita`, `Cita, Cita, Pago`, `/temporary-blocks`, `/reservations`, `/provider-assignments` ni `ReservacionTratamiento`.
 
 ## 6. Archivos temporales eliminados
 
@@ -46,7 +46,7 @@ Se conservaron los README, documentos funcionales, reglas, API, modelo de datos,
 
 ## 8. Modelo y SQL
 
-El modelo se mantiene en **22 entidades**. El SQL ya existente continúa creando 22 tablas e incluye `TratamientoCabina`, `CarritoItem`, `BloqueoCabina`, `Devolucion.motivo` y `Transaccion.id_devolucion`. Este trabajo no modificó estructuralmente SQL.
+El 19/09/2026 se documentó temporalmente una ampliación a **22 entidades**, incluyendo `TratamientoCabina`, `CarritoItem`, `BloqueoCabina`, `Devolucion.motivo` y `Transaccion.id_devolucion`. Posteriormente, el 30/09/2026, SQL y código volvieron explícitamente al modelo vigente de **19 entidades**. Este reporte no modificó estructuralmente SQL.
 
 ## 9. Alcances no modificados
 
@@ -56,4 +56,4 @@ El modelo se mantiene en **22 entidades**. El SQL ya existente continúa creando
 
 ## 10. Estado
 
-**LISTO PARA INICIAR BACKEND.** La base documental, el modelo de 22 entidades, el contrato de 14 módulos y 73 endpoints y el script SQL de referencia están consistentes. La implementación, migraciones, autenticación, endpoints y pruebas siguen pendientes porque están fuera del alcance documental.
+**LISTO PARA INICIAR BACKEND.** La ampliación temporal de 22 entidades quedó como antecedente histórico; el modelo vigente es de 19 entidades. La implementación, migraciones, autenticación, endpoints y pruebas siguen pendientes porque están fuera del alcance documental.

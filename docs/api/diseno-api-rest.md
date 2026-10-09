@@ -6,14 +6,14 @@ Sistema Web de Citas, Recomendación y Gestión de Cabinas para Spa
 
 | Documento | Diseño de API REST — TZISCA |
 | --- | --- |
-| Versión | 2.1 — Modelo vigente de 22 entidades |
-| Fecha | 18 de septiembre de 2026 |
+| Versión | 2.0 — Modelo vigente de 19 entidades |
+| Fecha | 13 de septiembre de 2026 |
 | Arquitectura base | Frontend Angular → API REST .NET Core → SQL Server |
 | Formato de intercambio | JSON |
 | Prefijo propuesto | /api/v1 |
 | Autenticación | ASP.NET Core Identity, JWT como access token y refresh token seguro. |
 
-Versión 2.1 — 18/09/2026. Contrato alineado con 22 entidades, CU-01 a CU-43 y RN-01 a RN-117.
+Versión 2.0 — 13/09/2026. Contrato alineado con 19 entidades, CU-01 a CU-43 y RN-01 a RN-108.
 
 Base URL: /api/v1
 
@@ -51,7 +51,7 @@ La API usa GET para consulta, POST para creación o acciones, PUT para reemplazo
 
 ## 4. Recursos y modelo
 
-Los DTO se basan en las 22 entidades vigentes. CarritoItem es un recurso persistente del carrito y conserva el bloqueo temporal de 15 minutos; BloqueoCabina representa un bloqueo operativo programado.
+Los DTO se basan en las 19 entidades vigentes. Las selecciones del carrito son parte del contrato funcional y el bloqueo temporal vence a los 15 minutos; queda materializado en la Cita pendiente mediante su expiración.
 
 ## 5. Catálogo de endpoints
 
@@ -91,8 +91,6 @@ Los DTO se basan en las 22 entidades vigentes. CarritoItem es un recurso persist
 | TRT-03 | POST | /api/v1/treatments | Administrador | Crea Tratamiento. |
 | TRT-04 | PATCH | /api/v1/treatments/{id} | Administrador | Actualiza Tratamiento. |
 | TRT-05 | GET | /api/v1/treatments/{id}/providers | Administrador o recepción | Consulta TratamientoProveedor. |
-| TRT-06 | GET | /api/v1/treatments/{id}/cabins | Público | Consulta cabinas compatibles mediante TratamientoCabina. |
-| TRT-07 | PUT | /api/v1/treatments/{id}/cabins | Administrador | Sustituye compatibilidades TratamientoCabina. |
 
 ### /packages
 
@@ -114,9 +112,6 @@ Los DTO se basan en las 22 entidades vigentes. CarritoItem es un recurso persist
 | CAB-04 | PATCH | /api/v1/cabins/{id} | Administrador | Actualiza datos y activo. |
 | CAB-05 | PATCH | /api/v1/cabins/{id}/status | Administrador o recepción | Cambia estado operativo. |
 | CAB-06 | GET | /api/v1/cabins/{id}/status-history | Administrador o recepción | Consulta EstadoCabina. |
-| CAB-07 | GET | /api/v1/cabins/{id}/blocks | Administrador o recepción | Lista BloqueoCabina, activo e histórico. |
-| CAB-08 | POST | /api/v1/cabins/{id}/blocks | Administrador o recepción | Crea un bloqueo operativo con motivo e intervalo. |
-| CAB-09 | PATCH | /api/v1/cabins/{id}/blocks/{blockId} | Administrador o recepción | Actualiza o desactiva un BloqueoCabina. |
 
 ### /recommendations
 
@@ -136,10 +131,10 @@ Los DTO se basan en las 22 entidades vigentes. CarritoItem es un recurso persist
 
 | ID | Método | Ruta | Roles | Propósito |
 | --- | --- | --- | --- | --- |
-| CRT-01 | GET | /api/v1/cart | Cliente | Consulta el Carrito activo y sus CarritoItem. |
-| CRT-02 | POST | /api/v1/cart/items | Cliente | Crea un CarritoItem temporal. |
-| CRT-03 | PATCH | /api/v1/cart/items/{id} | Cliente | Modifica un CarritoItem y renueva su bloqueo cuando procede. |
-| CRT-04 | DELETE | /api/v1/cart/items/{id} | Cliente | Elimina un CarritoItem y libera su bloqueo. |
+| CRT-01 | GET | /api/v1/cart | Cliente | Consulta el Carrito activo. |
+| CRT-02 | POST | /api/v1/cart/items | Cliente | Agrega una selección temporal. |
+| CRT-03 | PATCH | /api/v1/cart/items/{id} | Cliente | Modifica una selección y renueva el bloqueo cuando procede. |
+| CRT-04 | DELETE | /api/v1/cart/items/{id} | Cliente | Elimina una selección y libera su bloqueo. |
 | CRT-05 | DELETE | /api/v1/cart | Cliente | Abandona el Carrito y libera bloqueos. |
 
 ### /appointments
@@ -198,7 +193,7 @@ Los DTO se basan en las 22 entidades vigentes. CarritoItem es un recurso persist
 | RPT-04 | GET | /api/v1/reports/cancellations | Administrador | Cancelaciones y devoluciones. |
 | RPT-05 | GET | /api/v1/reports/cabin-occupancy | Administrador | Ocupación por CitaCabina y estado. |
 
-Total recalculado: 73 endpoints en 14 módulos.
+Total recalculado: 68 endpoints en 14 módulos.
 
 ## 6. DTO principales
 

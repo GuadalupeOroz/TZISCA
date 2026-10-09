@@ -39,14 +39,14 @@ Los entregables están en `TZISCA_CORRECCIONES`, fuera de la copia local del rep
 | Origen FigJam | Registra las dos representaciones ER y su contraste obligatorio con el modelo oficial. |
 | README principal | Refleja diseño y documentación pendientes de implementación, el inventario real y los dos modelos ER. |
 | Sprint 1 | Propone contenido basado solo en documentación y preparación realmente existentes. |
-| Modelos ER | Las PNG finales integran las 22 entidades, atributos PK/FK y relaciones del diccionario vigente. |
+| Modelos ER | Las PNG documentan la ampliación temporal de 22 entidades del 19/09/2026; no sustituyen el modelo vigente de 19 entidades. |
 
 ## Inconsistencias encontradas y corregidas
 
 - El README principal reporta 15 diagramas, mientras que el directorio contiene 20.
 - `modulos-api.md` conserva únicamente los 14 módulos vigentes.
 - `estados-cita.md` usa el estado aprobado `COMPLETADA`.
-- Las dos exportaciones ER principales están alineadas al modelo canónico de 22 entidades.
+- Las dos exportaciones ER principales registran la propuesta temporal de 22 entidades del 19/09/2026; el modelo vigente volvió explícitamente a 19 entidades en SQL y código el 30/09/2026.
 - `sprint-1.md` estaba vacío.
 
 ## Cambios que requieren aprobación

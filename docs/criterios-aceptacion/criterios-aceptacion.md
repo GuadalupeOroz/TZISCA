@@ -764,7 +764,7 @@ CA-43.4 — Inicio del procesamiento. Cuando comience el reembolso, TZISCA deber
 
 CA-43.5 — Devolución completada. Cuando el reembolso concluya correctamente, TZISCA deberá cambiar la Devolucion a COMPLETADA y el Pago a Reembolsado, si el tipo es TOTAL, o a Reembolsado parcialmente, si el tipo es PARCIAL.
 
-CA-43.6 — Devolución fallida. Cuando el reembolso no pueda completarse, TZISCA deberá cambiar la Devolucion a FALLIDA, conservar el Pago original y registrar el motivo o resultado disponible para seguimiento.
+CA-43.6 — Devolución fallida. Cuando el reembolso no pueda completarse, TZISCA deberá cambiar la Devolucion a FALLIDA, conservar el Pago original y registrar el resultado técnico disponible para seguimiento, sin duplicar el motivo de negocio de la Cancelacion relacionada.
 
 CA-43.7 — Devolución cancelada. Cuando una devolución se cancele antes de completarse, TZISCA deberá cambiarla a CANCELADA y conservar su historial.
 

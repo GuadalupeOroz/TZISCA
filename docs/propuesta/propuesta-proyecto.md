@@ -18,7 +18,7 @@ Responsable del proyecto: Adán Núñez
 
 Fecha: 14 de agosto de 2026
 
-Nota de versión. Actualización del 18/09/2026 alineada con las 22 entidades, RN-01 a RN-117, Cita como unidad de agenda, CarritoItem, TratamientoCabina, BloqueoCabina, Stripe, Identity/JWT y las políticas operativas aprobadas.
+Nota de versión. Actualización del 13/09/2026 alineada con las 19 entidades, RN-01 a RN-108, Cita como unidad de agenda, Cliente como entidad explícita, paquetes, Stripe, Identity/JWT y las políticas operativas aprobadas.
 
 ## 1. Descripción del producto
 
@@ -30,7 +30,7 @@ La cita será asistida por el sistema. Después de elegir un tratamiento, la apl
 
 El cliente elegirá la fecha y la hora deseada. El sistema validará la disponibilidad durante toda la duración del tratamiento; si existe un conflicto, informará que el horario está ocupado y mostrará horarios alternativos disponibles. La solución tendrá interfaces diferenciadas para clientes, administradores y proveedores de tratamiento.
 
-El alcance funcional confirmado incorpora, además del flujo de recomendación y citas descrito, un Carrito con CarritoItem, bloqueos temporales de recursos durante el proceso, el pago cuando corresponda y la consulta de estados, cancelaciones de una Cita o de varias Citas de una operación, devoluciones totales o parciales derivadas de cancelaciones con pago aprobado, la gestión y sustitución de proveedores de tratamiento ante indisponibilidades, y reportes básicos de operación. La solución mantendrá interfaces diferenciadas para los cuatro roles del sistema: Cliente, Administrador general, Recepción y cabinas y Proveedor de tratamiento.
+El alcance funcional confirmado incorpora, además del flujo de recomendación y cita descrito, un carrito previo a la cita, bloqueos temporales de recursos durante el proceso, el pago de la cita cuando corresponda y la consulta de su estado, cancelaciones de tratamientos o de la cita completa, devoluciones totales o parciales derivadas de cancelaciones con pago aprobado, la gestión y sustitución de proveedores de tratamiento ante indisponibilidades, y reportes básicos de operación. La solución mantendrá interfaces diferenciadas para los cuatro roles del sistema: Cliente, Administrador general, Recepción y cabinas y Proveedor de tratamiento.
 
 Figura 1. Arquitectura general propuesta del producto.
 
@@ -346,7 +346,7 @@ Los 43 casos de uso documentados (CU-01 a CU-43) representan el alcance funciona
 
 ## 12. Entidades de información
 
-El Diccionario de Datos y Modelo Lógico TZISCA define 22 entidades oficiales: Rol, Usuario, Cliente, PreferenciaCliente, Tratamiento, Paquete, PaqueteTratamiento, TratamientoCabina, Carrito, CarritoItem, Cita, CitaCabina, Proveedor, TratamientoProveedor, DisponibilidadProveedor, Cabina, EstadoCabina, BloqueoCabina, Pago, Cancelacion, Devolucion y Transaccion. Se distribuyen en seguridad, catalogo, reservas, operacion y pagos.
+El Diccionario de Datos y Modelo Lógico TZISCA define 19 entidades oficiales: Rol, Usuario, Cliente, PreferenciaCliente, Tratamiento, Carrito, Proveedor, TratamientoProveedor, DisponibilidadProveedor, Paquete, PaqueteTratamiento, Cabina, EstadoCabina, Cita, CitaCabina, Pago, Cancelacion, Devolucion y Transaccion. Se distribuyen en seguridad, catalogo, reservas, operacion y pagos.
 
 ## 13. Resultado esperado
 
@@ -374,7 +374,7 @@ Las decisiones operativas, económicas y técnicas de DP-OP-01 a DP-OP-13, DP-EC
 
 - pagos: Pago, Cancelacion, Devolucion y Transaccion.
 
-- Total oficial: 22 entidades. Cliente 1:N Cita; Carrito 1:N CarritoItem; Tratamiento N:M Cabina mediante TratamientoCabina; Paquete N:M Tratamiento; Cita N:M Cabina.
+- Total oficial: 19 entidades. Cliente 1:N Cita; Tratamiento N:M Proveedor; Paquete N:M Tratamiento; Cita N:M Cabina.
 
 ## 16. Decisiones operativas aprobadas
 

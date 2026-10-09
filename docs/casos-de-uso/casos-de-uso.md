@@ -2202,7 +2202,7 @@ Con estos 43 casos de uso queda documentado el alcance funcional principal acord
 
 ## 11. Alineación vigente del modelo y políticas
 
-- Modelo oficial de 22 entidades en seguridad, catalogo, reservas, operacion y pagos.
+- Modelo oficial de 19 entidades en seguridad, catalogo, reservas, operacion y pagos.
 
 - Cliente es una entidad distinta de Usuario y mantiene relación 1:N con Cita.
 
