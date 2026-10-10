@@ -321,63 +321,6 @@ CREATE TABLE operacion.Cabina (
 GO
 
 
-CREATE TABLE catalogo.TratamientoCabina (
-    id_tratamiento INT NOT NULL,
-    id_cabina INT NOT NULL,
-    activo BIT NOT NULL
-        CONSTRAINT DF_TratamientoCabina_Activo DEFAULT (1),
-    CONSTRAINT PK_TratamientoCabina PRIMARY KEY (id_tratamiento, id_cabina),
-    CONSTRAINT FK_TratamientoCabina_Tratamiento FOREIGN KEY (id_tratamiento)
-        REFERENCES catalogo.Tratamiento(id_tratamiento),
-    CONSTRAINT FK_TratamientoCabina_Cabina FOREIGN KEY (id_cabina)
-        REFERENCES operacion.Cabina(id_cabina)
-);
-GO
-CREATE INDEX IX_TratamientoCabina_Cabina ON catalogo.TratamientoCabina(id_cabina);
-GO
-
-CREATE TABLE reservas.CarritoItem (
-    id_carrito_item BIGINT IDENTITY(1,1) NOT NULL,
-    id_carrito BIGINT NOT NULL,
-    id_tratamiento INT NOT NULL,
-    numero_personas INT NOT NULL CONSTRAINT DF_CarritoItem_NumeroPersonas DEFAULT (1),
-    id_cabina INT NULL,
-    fecha_hora_inicio DATETIME2 NULL,
-    fecha_hora_fin DATETIME2 NULL,
-    fecha_expiracion_bloqueo DATETIME2 NULL,
-    fecha_creacion DATETIME2 NOT NULL CONSTRAINT DF_CarritoItem_FechaCreacion DEFAULT (SYSUTCDATETIME()),
-    fecha_actualizacion DATETIME2 NOT NULL CONSTRAINT DF_CarritoItem_FechaActualizacion DEFAULT (SYSUTCDATETIME()),
-    CONSTRAINT PK_CarritoItem PRIMARY KEY (id_carrito_item),
-    CONSTRAINT FK_CarritoItem_Carrito FOREIGN KEY (id_carrito) REFERENCES reservas.Carrito(id_carrito),
-    CONSTRAINT FK_CarritoItem_Tratamiento FOREIGN KEY (id_tratamiento) REFERENCES catalogo.Tratamiento(id_tratamiento),
-    CONSTRAINT FK_CarritoItem_Cabina FOREIGN KEY (id_cabina) REFERENCES operacion.Cabina(id_cabina),
-    CONSTRAINT CK_CarritoItem_NumeroPersonas CHECK (numero_personas > 0),
-    CONSTRAINT CK_CarritoItem_HorarioCompleto CHECK ((fecha_hora_inicio IS NULL AND fecha_hora_fin IS NULL) OR (fecha_hora_inicio IS NOT NULL AND fecha_hora_fin IS NOT NULL)),
-    CONSTRAINT CK_CarritoItem_RangoHorario CHECK (fecha_hora_inicio IS NULL OR fecha_hora_fin > fecha_hora_inicio)
-);
-GO
-CREATE INDEX IX_CarritoItem_Carrito ON reservas.CarritoItem(id_carrito);
-GO
-CREATE INDEX IX_CarritoItem_Cabina_Bloqueo ON reservas.CarritoItem(id_cabina, fecha_hora_inicio, fecha_hora_fin, fecha_expiracion_bloqueo) WHERE id_cabina IS NOT NULL AND fecha_expiracion_bloqueo IS NOT NULL;
-GO
-
-CREATE TABLE operacion.BloqueoCabina (
-    id_bloqueo_cabina BIGINT IDENTITY(1,1) NOT NULL,
-    id_cabina INT NOT NULL,
-    fecha_hora_inicio DATETIME2 NOT NULL,
-    fecha_hora_fin DATETIME2 NOT NULL,
-    motivo NVARCHAR(500) NOT NULL,
-    activo BIT NOT NULL CONSTRAINT DF_BloqueoCabina_Activo DEFAULT (1),
-    fecha_creacion DATETIME2 NOT NULL CONSTRAINT DF_BloqueoCabina_FechaCreacion DEFAULT (SYSUTCDATETIME()),
-    CONSTRAINT PK_BloqueoCabina PRIMARY KEY (id_bloqueo_cabina),
-    CONSTRAINT FK_BloqueoCabina_Cabina FOREIGN KEY (id_cabina) REFERENCES operacion.Cabina(id_cabina),
-    CONSTRAINT CK_BloqueoCabina_Rango CHECK (fecha_hora_fin > fecha_hora_inicio),
-    CONSTRAINT CK_BloqueoCabina_Motivo_NoVacio CHECK (LEN(LTRIM(RTRIM(motivo))) > 0)
-);
-GO
-CREATE INDEX IX_BloqueoCabina_Cabina_Rango ON operacion.BloqueoCabina(id_cabina, fecha_hora_inicio, fecha_hora_fin) WHERE activo = 1;
-GO
-
 CREATE TABLE operacion.EstadoCabina (
     id_estado_cabina BIGINT IDENTITY(1,1) NOT NULL,
     id_cabina INT NOT NULL,
@@ -650,7 +593,6 @@ CREATE TABLE pagos.Devolucion (
     id_pago BIGINT NOT NULL,
     id_cancelacion BIGINT NOT NULL,
     tipo NVARCHAR(20) NOT NULL,
-    motivo NVARCHAR(500) NULL,
     porcentaje DECIMAL(5,2) NOT NULL,
     monto DECIMAL(10,2) NOT NULL
         CONSTRAINT DF_Devolucion_Monto DEFAULT (0),
@@ -717,7 +659,6 @@ GO
 CREATE TABLE pagos.Transaccion (
     id_transaccion BIGINT IDENTITY(1,1) NOT NULL,
     id_pago BIGINT NOT NULL,
-    id_devolucion BIGINT NULL,
     referencia_externa NVARCHAR(150) NULL,
     proveedor_pago NVARCHAR(40) NOT NULL
         CONSTRAINT DF_Transaccion_ProveedorPago DEFAULT (N'STRIPE'),
@@ -733,10 +674,6 @@ CREATE TABLE pagos.Transaccion (
         FOREIGN KEY (id_pago)
         REFERENCES pagos.Pago(id_pago),
 
-    CONSTRAINT FK_Transaccion_Devolucion
-        FOREIGN KEY (id_devolucion)
-        REFERENCES pagos.Devolucion(id_devolucion),
-
     CONSTRAINT CK_Transaccion_Tipo
         CHECK (tipo IN (
             N'PAGO',
@@ -748,11 +685,6 @@ GO
 
 CREATE INDEX IX_Transaccion_Pago
     ON pagos.Transaccion(id_pago);
-GO
-
-CREATE INDEX IX_Transaccion_Devolucion
-    ON pagos.Transaccion(id_devolucion)
-    WHERE id_devolucion IS NOT NULL;
 GO
 
 CREATE INDEX IX_Transaccion_ReferenciaExterna
@@ -784,12 +716,10 @@ GRANT SELECT ON seguridad.Cliente TO rol_cliente;
 GRANT SELECT, INSERT, UPDATE ON seguridad.PreferenciaCliente TO rol_cliente;
 
 GRANT SELECT ON operacion.Cabina TO rol_cliente;
-GRANT SELECT ON catalogo.TratamientoCabina TO rol_cliente;
 GRANT SELECT ON operacion.Proveedor TO rol_cliente;
 GRANT SELECT ON operacion.DisponibilidadProveedor TO rol_cliente;
 
 GRANT SELECT, INSERT, UPDATE ON reservas.Carrito TO rol_cliente;
-GRANT SELECT, INSERT, UPDATE, DELETE ON reservas.CarritoItem TO rol_cliente;
 GRANT SELECT, INSERT ON reservas.Cita TO rol_cliente;
 GRANT SELECT, INSERT, UPDATE ON reservas.CitaCabina TO rol_cliente;
 
@@ -832,7 +762,6 @@ GRANT SELECT ON operacion.TratamientoProveedor TO rol_recepcionista;
 GRANT SELECT ON operacion.DisponibilidadProveedor TO rol_recepcionista;
 GRANT SELECT, UPDATE ON operacion.Cabina TO rol_recepcionista;
 GRANT SELECT ON operacion.EstadoCabina TO rol_recepcionista;
-GRANT SELECT, INSERT, UPDATE ON operacion.BloqueoCabina TO rol_recepcionista;
 
 GRANT SELECT, INSERT, UPDATE ON reservas.Cita TO rol_recepcionista;
 GRANT SELECT, INSERT, UPDATE ON reservas.CitaCabina TO rol_recepcionista;

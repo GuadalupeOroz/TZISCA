@@ -14,7 +14,7 @@
 - Se incluyeron actores y conectores situados fuera de las secciones de casos de uso. Los títulos flotantes de sección que muestra el editor de Figma no forman parte del PNG exportado; sus nombres quedan registrados en este índice.
 - Las cinco capturas adjuntas sirvieron como referencia visual. Sus rutas temporales de macOS ya no estaban disponibles al ejecutar la tarea, por lo que no se copiaron ni renombraron esos originales. Las cinco composiciones correspondientes se recuperaron del FigJam.
 - Se comprobó que el tablero permite exportar SVG. Se incorporan PNG por su representación visual verificada y miniaturas proporcionales; no se agrega el SVG global de aproximadamente 18,5 MB.
-- El 18 de septiembre de 2026 se actualizó el tablero autorizado directamente: el ER principal y el Chen integran CarritoItem, TratamientoCabina, BloqueoCabina, Devolucion.motivo y Transaccion.id_devolucion. Las exportaciones finales sustituyen las PNG principales.
+- El 18 de septiembre de 2026 se actualizó temporalmente el tablero autorizado con una propuesta de 22 entidades que integró CarritoItem, TratamientoCabina, BloqueoCabina, Devolucion.motivo y Transaccion.id_devolucion. Posteriormente, el 30 de septiembre de 2026 SQL y código volvieron explícitamente al modelo vigente de 19 entidades; aquella ampliación no constituye la fuente normativa actual.
 
 ## Inventario de exportaciones
 

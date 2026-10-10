@@ -2,7 +2,7 @@
 
 ![TZISCA — reservas, agenda y cabinas para spa](docs/assets/tzisca-banner.png)
 
-**Proyecto académico · Diseño y documentación · Implementación pendiente (modelo vigente de 22 entidades)**
+**Proyecto académico · Diseño y documentación · Implementación pendiente (modelo vigente de 19 entidades)**
 
 [Documentación](docs/README.md) · [Diagramas](docs/diagramas/README.md) · [Vistas por rol](docs/vistas/README.md) · [Sprint 1](docs/planificacion/sprint-1.md)
 

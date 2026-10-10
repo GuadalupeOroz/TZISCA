@@ -2,7 +2,7 @@
 
 **DICCIONARIO DE DATOS Y MODELO DE DATOS DEPURADO**
 
-Versión alineada al modelo vigente de 22 entidades y a RN-01 a RN-117. Fecha de actualización: 18/09/2026.
+Versión alineada al modelo vigente de 19 entidades y a RN-01 a RN-108. Fecha de actualización: 13/09/2026.
 
 ## 1. Propósito del documento
 
@@ -35,11 +35,8 @@ Los tipos indicados son tipos físicos de SQL Server. PK identifica llave primar
 | 17 | Cancelacion | pagos | Conserva el motivo y momento de cancelar una Cita. |
 | 18 | Devolucion | pagos | Registra reembolsos totales, parciales o de monto cero derivados de la política. |
 | 19 | Transaccion | pagos | Conserva intentos y respuestas técnicas de PaymentService y Stripe. |
-| 20 | CarritoItem | reservas | Configura cada tratamiento del carrito, incluyendo personas, cabina y horario provisionales. |
-| 21 | TratamientoCabina | catalogo | Define compatibilidad activa entre Tratamiento y Cabina. |
-| 22 | BloqueoCabina | operacion | Registra un bloqueo operativo programado de una cabina. |
 
-Total oficial: 22 entidades.
+Total oficial: 19 entidades.
 
 ## 4. Diccionario de datos
 
@@ -442,15 +439,3 @@ RN-91 a RN-108 reemplazan el bloque de decisiones pendientes. Las políticas de 
 ## 9. Punto pendiente de verificación
 
 El script SQL existe en `database/scripts/tzisca.sql`. Antes de implementar se deben ejecutar pruebas de integración para validar los triggers existentes y los GRANT efectivos de los cuatro roles SQL.
-
-## 10. Ampliación canónica del modelo 22
-
-| Entidad / cambio | Campos y relación canónica |
-| --- | --- |
-| `reservas.CarritoItem` | `id_carrito_item`, `id_carrito`, `id_tratamiento`, `numero_personas`, `id_cabina` nullable, inicio/fin nullable, `fecha_expiracion_bloqueo` nullable y fechas de creación/actualización. Carrito, Tratamiento y Cabina se relacionan 1:N con el ítem. |
-| `catalogo.TratamientoCabina` | PK compuesta `id_tratamiento`, `id_cabina`, y `activo`; ambos extremos son 1:N y expresan una compatibilidad funcional N:M. |
-| `operacion.BloqueoCabina` | `id_bloqueo_cabina`, `id_cabina`, inicio, fin, `motivo`, `activo`, fecha de creación. Es un bloqueo operativo programado. |
-| `pagos.Devolucion` | Incluye `motivo` además de tipo, porcentaje, monto, estado y fechas. |
-| `pagos.Transaccion` | Incluye `id_devolucion` nullable. Pago 1:N Transaccion y Devolucion 1:N Transaccion. |
-
-La disponibilidad cruza Cita/CitaCabina, bloqueos temporales vigentes de CarritoItem, BloqueoCabina, Cabina activa/estado, TratamientoCabina, capacidad, proveedor y disponibilidad del proveedor. CitaCabina sigue siendo la relación correcta entre Cita y Cabina.

@@ -21,4 +21,4 @@ flowchart LR
     API --- M13["/reports"]
 ```
 
-Las líneas indican pertenencia al contrato API, no dependencias ni orden de ejecución. Los 14 módulos corresponden al [Diseño de API REST](../api/diseno-api-rest.md). `CarritoItem` se gestiona en `/cart` y `BloqueoCabina` en `/cabins`; no constituyen módulos independientes.
+Las líneas indican pertenencia al contrato API, no dependencias ni orden de ejecución. Los 14 módulos corresponden al [Diseño de API REST](../api/diseno-api-rest.md). Las selecciones del carrito se gestionan en `/cart` y el bloqueo temporal se materializa en la Cita pendiente; no constituyen entidades ni módulos independientes.

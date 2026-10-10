@@ -131,4 +131,4 @@ Las miniaturas conservan la proporción. Abre cada imagen para consultar el diag
 
 [Imagen completa](modelo-entidad-relacion-chen-figjam.png) · [Sección de FigJam](https://www.figma.com/board/kjk49fziEiQzOM85H3MqRy/Sin-t%C3%ADtulo?node-id=381-2299)
 
-> Las exportaciones ER deben reflejar el modelo canónico de 22 entidades definido en el [diccionario de datos](../modelo-datos/diccionario-datos.md). El FigJam se actualiza directamente y las PNG se sustituyen por sus exportaciones integradas, no por versiones “corregidas” separadas.
+> Las exportaciones ER deben contrastarse con el modelo canónico vigente de 19 entidades definido en el [diccionario de datos](../modelo-datos/diccionario-datos.md). El FigJam se actualiza directamente y las PNG se sustituyen por sus exportaciones integradas, no por versiones “corregidas” separadas.
